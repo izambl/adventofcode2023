@@ -1,0 +1,26 @@
+{
+  "name": "adventofcode2022",
+  "version": "1.0.0",
+  "description": "Advent of code 2023 - With Typescript",
+  "main": "index.js",
+  "scripts": {
+    "day01": "ts-node ./days/day01/index"
+  },
+  "author": "Ismael b. <ismael@recursivamente.com>",
+  "license": "ISC",
+  "dependencies": {
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.202",
+    "@types/node": "^20.10.1",
+    "@typescript-eslint/eslint-plugin": "^6.13.1",
+    "@typescript-eslint/parser": "^6.13.1",
+    "eslint-config-airbnb-typescript": "^17.1.0",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-jsx-a11y": "^6.8.0",
+    "eslint": "^8.54.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.3.2"
+  }
+}

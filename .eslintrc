@@ -1,0 +1,33 @@
+{
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
+  "plugins": ["@typescript-eslint", "import"],
+  "extends": ["airbnb-typescript/base"],
+  "rules": {
+    "@typescript-eslint/no-use-before-define": [
+      "error",
+      {
+        "functions": false,
+        "classes": false,
+        "variables": true,
+        "enums": true,
+        "typedefs": true,
+        "ignoreTypeReferences": false
+      }
+    ],
+    "no-bitwise": "off",
+    "max-len": ["error", { "code": 150 }],
+    "no-restricted-syntax": "off",
+    "no-continue": "off",
+    "no-prototype-builtins": "off",
+    "default-case": "off",
+    "no-param-reassign": "off",
+    "arrow-body-style": "off",
+    "no-plusplus": "off",
+    "@typescript-eslint/lines-between-class-members": "off",
+    "@typescript-eslint/comma-dangle": "off",
+    "@typescript-eslint/no-loop-func": "off"
+  }
+}
