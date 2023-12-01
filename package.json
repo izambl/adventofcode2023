@@ -4,7 +4,7 @@
   "description": "Advent of code 2023 - With Typescript",
   "main": "index.js",
   "scripts": {
-    "day01": "ts-node ./days/day01/index"
+    "day": "ts-node ./days/dayRunner"
   },
   "author": "Ismael b. <ismael@recursivamente.com>",
   "license": "ISC",
