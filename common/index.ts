@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-export function readInput(fileName: string, splitBy: string = '\n'): string[] {
+export function readInput(fileName: string, splitBy = '\n'): string[] {
   return fs.readFileSync(path.join(fileName)).toString('utf-8').split(splitBy);
 }
 
