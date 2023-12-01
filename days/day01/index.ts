@@ -32,7 +32,7 @@ function digitToDigit(digit: string): string {
 
 function findMatches(line: string): string[] {
   const targets = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-  const matches = [];
+  const matches: string[] = [];
   for (let i = 0; i < line.length; i++) {
     for (const target of targets) {
       if (line.startsWith(target, i)) {
@@ -59,7 +59,7 @@ for (const line of part01Input) {
   const firstDigit = matches.at(0);
   const lastDigit = matches.at(-1);
 
-  part02 += Number(`${digitToDigit(firstDigit)}${digitToDigit(lastDigit)}`);
+  part02 += Number(`${digitToDigit(firstDigit!)}${digitToDigit(lastDigit!)}`);
 }
 
 process.stdout.write(`Part 01: ${part01}\n`);
