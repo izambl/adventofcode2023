@@ -1,4 +1,4 @@
-// https://adventofcode.com/2023/day/1
+// https://adventofcode.com/2023/day/3
 // Day 3: Gear Ratios
 
 import { readInput } from '../../common/index';

@@ -1,4 +1,4 @@
-// https://adventofcode.com/2023/day/1
+// https://adventofcode.com/2023/day/2
 // Day 2: Cube Conundrum
 
 import { readInput } from '../../common/index';
