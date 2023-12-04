@@ -12,11 +12,6 @@
     "sourceMap": true,
     "target": "es2022"
   },
-  "include": [
-    "days/**/*",
-    "common/**/*"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["days/**/*", "common/**/*"],
+  "exclude": ["node_modules"]
 }
