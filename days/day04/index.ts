@@ -7,7 +7,7 @@ import { readInput } from '../../common/index';
 const cards = readInput('days/day04/input01', '\n');
 
 interface Games {
-  [index: string]: { winning: Array<number>; player: Array<number> };
+  [index: string]: { winning: Array<number>; player: Array<number>; gameInstances: 1 };
 }
 
 const games: Games = {};
@@ -21,7 +21,7 @@ for (const card of cards) {
   const winningNumbers = winningNums.trim().replace(/\s+/g, ' ').split(' ').map(Number);
   const playerNumbers = playerNums.trim().replace(/\s+/g, ' ').split(' ').map(Number);
 
-  games[gameNumber] = { winning: winningNumbers, player: playerNumbers };
+  games[gameNumber] = { winning: winningNumbers, player: playerNumbers, gameInstances: 1 };
 }
 
 const part01 = Object.keys(games).reduce((total: number, gameNumber: string): number => {
@@ -35,7 +35,19 @@ const part01 = Object.keys(games).reduce((total: number, gameNumber: string): nu
   return total + score;
 }, 0);
 
-const part02 = 0;
+for (const gameNumber of Object.keys(games)) {
+  const game = games[gameNumber];
+  const winningMatches = intersection(game.winning, game.player);
+
+  for (let gameIndex = Number(gameNumber) + 1; gameIndex <= Number(gameNumber) + winningMatches.length; gameIndex++) {
+    games[String(gameIndex)].gameInstances += game.gameInstances;
+  }
+}
+
+const part02 = Object.keys(games).reduce((total, gameNumber) => {
+  const game = games[gameNumber];
+  return game.gameInstances + total;
+}, 0);
 
 process.stdout.write(`Part 01: ${part01}\n`);
 process.stdout.write(`Part 02: ${part02}\n`);
