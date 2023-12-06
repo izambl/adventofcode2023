@@ -3,7 +3,7 @@
 
 import { readInput } from '../../common/index';
 
-const almanacInput = readInput('days/day05/inputDemo', '\n\n');
+const almanacInput = readInput('days/day05/input01', '\n\n');
 
 const seeds = almanacInput.shift().split(': ')[1].split(' ').map(Number);
 
@@ -29,11 +29,11 @@ for (const almanacEntry of almanacInput) {
   });
 }
 
-const seedsPath: number[][] = seeds.map((seed): number[] => {
-  const path: number[] = [seed];
+function getLocation(seed: number): number {
+  let location = seed;
 
   for (const step of almanac) {
-    const source = path.at(-1);
+    const source = location;
 
     const mapping = step.maps.find(([, [sourceRangeFrom, sourceRangeTo]]) => {
       if (source >= sourceRangeFrom && source <= sourceRangeTo) return true;
@@ -42,20 +42,42 @@ const seedsPath: number[][] = seeds.map((seed): number[] => {
     });
 
     if (!mapping) {
-      path.push(source);
+      location = source;
       continue;
     }
 
     const [[, destinationRangeTo], [, sourceRangeTo]] = mapping;
 
-    path.push(destinationRangeTo - (sourceRangeTo - source));
+    location = destinationRangeTo - (sourceRangeTo - source);
   }
 
-  return path;
-});
+  return location;
+}
 
-const part01 = Math.min(...seedsPath.map((sp) => sp.at(-1)));
-const part02 = 0;
+let part01 = Infinity;
+for (const seed of seeds) {
+  part01 = Math.min(part01, getLocation(seed));
+}
 
 process.stdout.write(`Part 01: ${part01}\n`);
+
+const seedsInputPart02 = [...seeds];
+const seedsPart02 = [];
+
+while (seedsInputPart02.length) {
+  const from = seedsInputPart02.shift();
+  const length = seedsInputPart02.shift();
+
+  seedsPart02.push({ from: from, to: from + length - 1, len: from + length - from });
+}
+
+let part02 = Infinity;
+for (const { from, to, len } of seedsPart02) {
+  console.log(`Current min: ${part02}`);
+
+  for (let seed = from; seed <= to; seed++) {
+    part02 = Math.min(part02, getLocation(seed));
+  }
+}
+
 process.stdout.write(`Part 02: ${part02}\n`);
