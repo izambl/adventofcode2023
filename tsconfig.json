@@ -3,6 +3,7 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "baseUrl": "./days",
+    "lib": ["ESNext.Array"],
     "module": "CommonJS",
     "noImplicitAny": true,
     "noEmit": true,

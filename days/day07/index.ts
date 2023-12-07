@@ -36,6 +36,21 @@ const CARD_STRENGTH = Object.freeze({
   '3': 2,
   '2': 1,
 });
+const CARD_STRENGTH_WITH_JOKER = Object.freeze({
+  A: 13,
+  K: 12,
+  Q: 11,
+  T: 10,
+  '9': 9,
+  '8': 8,
+  '7': 7,
+  '6': 6,
+  '5': 5,
+  '4': 4,
+  '3': 3,
+  '2': 2,
+  J: 1,
+});
 
 const game = readInput('days/day07/input01', '\n')
   .map((hand) => hand.split(' '))
@@ -52,14 +67,22 @@ type Hand = {
   bet: number;
 };
 
-function scoreHand({ cards }: Hand): Hands {
+function scoreHand(withJoker: boolean, { cards }: Hand): Hands {
   const cardQuantity: { [index: string]: number } = {};
 
   for (const card of cards) {
     cardQuantity[card] = cardQuantity[card] ? cardQuantity[card] + 1 : 1;
   }
 
+  let jokers = 0;
+  if (cardQuantity.J && withJoker) {
+    jokers = cardQuantity.J;
+    cardQuantity.J = 0;
+  }
+
   const score = Object.values(cardQuantity).sort((a, b) => b - a);
+
+  score[0] += jokers;
 
   if (score[0] === 5) return 'Five of a kind';
   if (score[0] === 4) return 'Four of a kind';
@@ -70,9 +93,10 @@ function scoreHand({ cards }: Hand): Hands {
 
   return 'High card';
 }
-function findWinner(handA: Hand, handB: Hand): number {
-  const scoreA = scoreHand(handA);
-  const scoreB = scoreHand(handB);
+function findWinner(withJoker: boolean, handA: Hand, handB: Hand): number {
+  const scoreA = scoreHand(withJoker, handA);
+  const scoreB = scoreHand(withJoker, handB);
+  const STRENGHT = withJoker ? CARD_STRENGTH_WITH_JOKER : CARD_STRENGTH;
 
   if (HAND_STRENGTH[scoreA] > HAND_STRENGTH[scoreB]) return 1;
   if (HAND_STRENGTH[scoreA] < HAND_STRENGTH[scoreB]) return -1;
@@ -81,19 +105,20 @@ function findWinner(handA: Hand, handB: Hand): number {
     const cardA = handA.cards[i];
     const cardB = handB.cards[i];
 
-    if (CARD_STRENGTH[cardA] > CARD_STRENGTH[cardB]) return 1;
-    if (CARD_STRENGTH[cardA] < CARD_STRENGTH[cardB]) return -1;
+    if (STRENGHT[cardA] > STRENGHT[cardB]) return 1;
+    if (STRENGHT[cardA] < STRENGHT[cardB]) return -1;
   }
 
   return 0;
 }
 
-game.sort(findWinner);
-
-const part01 = game.reduce((total, hand, position) => {
+const part01 = game.toSorted(findWinner.bind(null, false)).reduce((total, hand, position) => {
   return total + hand.bet * (position + 1);
 }, 0);
-const part02 = 0;
+
+const part02 = game.toSorted(findWinner.bind(null, true)).reduce((total, hand, position) => {
+  return total + hand.bet * (position + 1);
+}, 0);
 
 process.stdout.write(`Part 01: ${part01}\n`);
 process.stdout.write(`Part 02: ${part02}\n`);
