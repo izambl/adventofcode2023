@@ -32,16 +32,31 @@ for (const [index, direction] of instructions.entries()) {
 }
 currentPoint.next = firstInstruction;
 
-let part01 = 0;
-let currentInstruction = firstInstruction;
-let currentMapPosition = 'AAA';
-while (currentMapPosition !== 'ZZZ') {
-  part01++;
-  currentMapPosition = map[currentMapPosition][currentInstruction.direction];
-  currentInstruction = currentInstruction.next;
+function processMap(map: Map, startPositions: string[], winCondition: (position: string) => boolean): number {
+  let steps = 0;
+  let currentMapPositions = [...startPositions];
+  let currentInstruction = firstInstruction;
+
+  while (!currentMapPositions.every(winCondition)) {
+    steps++;
+    currentMapPositions = currentMapPositions.map((mapPositon) => {
+      return map[mapPositon][currentInstruction.direction];
+    });
+    currentInstruction = currentInstruction.next;
+    if (steps % 10_000 === 0) console.log(steps);
+  }
+
+  return steps;
 }
 
-const part02 = 0;
+const part01StartPositions = ['AAA'];
+const part01WinCondition = (position: string) => position === 'ZZZ';
 
+const part02StartPositions = Object.keys(map).filter((position) => position.match(/A$/));
+const part02WinCondition = (position: string) => position.match(/Z$/) !== null;
+
+const part01 = processMap(map, part01StartPositions, part01WinCondition);
 process.stdout.write(`Part 01: ${part01}\n`);
+
+const part02 = processMap(map, part02StartPositions, part02WinCondition);
 process.stdout.write(`Part 02: ${part02}\n`);
