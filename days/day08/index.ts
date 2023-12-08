@@ -1,7 +1,7 @@
 // https://adventofcode.com/2023/day/8
 // Day 8: Haunted Wasteland
 
-import { readInput } from '../../common/index';
+import { findLCM, readInput } from '../../common/index';
 
 type Direction = 'L' | 'R';
 type Node = { [key in Direction]: string };
@@ -32,31 +32,32 @@ for (const [index, direction] of instructions.entries()) {
 }
 currentPoint.next = firstInstruction;
 
-function processMap(map: Map, startPositions: string[], winCondition: (position: string) => boolean): number {
+function processMap(map: Map, startPosition: string, winCondition: (position: string) => boolean): number {
   let steps = 0;
-  let currentMapPositions = [...startPositions];
+  let currentMapPosition = startPosition;
   let currentInstruction = firstInstruction;
 
-  while (!currentMapPositions.every(winCondition)) {
+  while (!winCondition(currentMapPosition)) {
     steps++;
-    currentMapPositions = currentMapPositions.map((mapPositon) => {
-      return map[mapPositon][currentInstruction.direction];
-    });
+    currentMapPosition = map[currentMapPosition][currentInstruction.direction];
     currentInstruction = currentInstruction.next;
-    if (steps % 10_000 === 0) console.log(steps);
   }
 
   return steps;
 }
 
-const part01StartPositions = ['AAA'];
 const part01WinCondition = (position: string) => position === 'ZZZ';
 
 const part02StartPositions = Object.keys(map).filter((position) => position.match(/A$/));
 const part02WinCondition = (position: string) => position.match(/Z$/) !== null;
 
-const part01 = processMap(map, part01StartPositions, part01WinCondition);
+const part01 = processMap(map, 'AAA', part01WinCondition);
 process.stdout.write(`Part 01: ${part01}\n`);
 
-const part02 = processMap(map, part02StartPositions, part02WinCondition);
-process.stdout.write(`Part 02: ${part02}\n`);
+const part02 = findLCM(
+  part02StartPositions.map((startPosition) => {
+    return processMap(map, startPosition, part02WinCondition);
+  }),
+);
+
+process.stdout.write(`Part 02: ${part02.toString()}\n`);
