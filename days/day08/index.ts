@@ -54,10 +54,5 @@ const part02WinCondition = (position: string) => position.match(/Z$/) !== null;
 const part01 = processMap(map, 'AAA', part01WinCondition);
 process.stdout.write(`Part 01: ${part01}\n`);
 
-const part02 = findLCM(
-  part02StartPositions.map((startPosition) => {
-    return processMap(map, startPosition, part02WinCondition);
-  }),
-);
-
+const part02 = findLCM(part02StartPositions.map((startPosition) => processMap(map, startPosition, part02WinCondition)));
 process.stdout.write(`Part 02: ${part02.toString()}\n`);
