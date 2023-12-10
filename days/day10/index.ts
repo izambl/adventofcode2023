@@ -6,20 +6,20 @@ import { readInput } from '../../common/index';
 const input = readInput('days/day10/input01', '\n').map((row) => row.split('')) as Array<TileType[]>;
 
 const pipeDescriptions: {
-  [key in TileType]: { north: boolean; south: boolean; west: boolean; east: boolean };
+  [key in TileType]: { north: boolean; south: boolean; west: boolean; east: boolean; ascii: string };
 } = {
-  '|': { north: true, south: true, west: false, east: false },
-  '-': { north: false, south: false, west: true, east: true },
-  L: { north: true, south: false, west: false, east: true },
-  J: { north: true, south: false, west: true, east: false },
-  '7': { north: false, south: true, west: true, east: false },
-  F: { north: false, south: true, west: false, east: true },
-  '.': { north: false, south: false, west: false, east: false },
-  S: { north: true, south: true, west: true, east: true },
+  '|': { north: true, south: true, west: false, east: false, ascii: '│' },
+  '-': { north: false, south: false, west: true, east: true, ascii: '─' },
+  L: { north: true, south: false, west: false, east: true, ascii: '└' },
+  J: { north: true, south: false, west: true, east: false, ascii: '┘' },
+  '7': { north: false, south: true, west: true, east: false, ascii: '┐' },
+  F: { north: false, south: true, west: false, east: true, ascii: '┌' },
+  '.': { north: false, south: false, west: false, east: false, ascii: ' ' },
+  S: { north: true, south: true, west: true, east: true, ascii: '▓' },
 };
 
 type TileType = '|' | '-' | 'L' | 'J' | '7' | 'F' | '.' | 'S';
-type Tile = { north?: Tile; south?: Tile; west?: Tile; east?: Tile; type: TileType };
+type Tile = { north?: Tile; south?: Tile; west?: Tile; east?: Tile; type: TileType; partOfPile: boolean };
 type Map = { [key: string]: Tile };
 
 const map: Map = {};
@@ -32,6 +32,7 @@ for (const [y, row] of input.entries()) {
 
     const tile: Tile = {
       type: tileDescription,
+      partOfPile: false,
     };
 
     map[coordinate] = tile;
@@ -45,7 +46,7 @@ for (const mapTileKey of Object.keys(map)) {
 
   if (mapTile.type === 'S') {
     startPosition = mapTile;
-    //continue;
+    startPosition.partOfPile = true;
   }
 
   if (pipeDescriptions[mapTile.type].north) {
@@ -110,8 +111,10 @@ const runnerVisits: Set<Tile> = new Set([startPosition]);
   (direction) => !!direction,
 );
 
+// Walk all the pipe
 while (runner01) {
   runnerVisits.add(runner01);
+  runner01.partOfPile = true;
 
   runner01 = [runner01.north, runner01.south, runner01.west, runner01.east].filter(
     (direction) => !!direction && !runnerVisits.has(direction),
@@ -120,8 +123,23 @@ while (runner01) {
   steps++;
 }
 
+const newMap: Array<string[]> = [];
+
+const enclosedTiles = 0;
+for (const mapTileKey of Object.keys(map)) {
+  const mapTile = map[mapTileKey];
+  const [mapX, mapY] = mapTileKey.split(':').map(Number);
+
+  if (!newMap[mapY]) newMap[mapY] = [];
+  newMap[mapY][mapX] = mapTile.partOfPile ? pipeDescriptions[mapTile.type].ascii : ' ';
+  // newMap[mapY][mapX] = mapTile.partOfPile ? '▓' : ' ';
+
+  if (mapTile.partOfPile) continue;
+}
+console.log(newMap.map((line) => line.join('')).join('\n'));
+
 const part01 = steps / 2;
 process.stdout.write(`Part 01: ${part01.toString()}\n`);
 
-const part02 = 0;
+const part02 = enclosedTiles;
 process.stdout.write(`Part 02: ${part02.toString()}\n`);
