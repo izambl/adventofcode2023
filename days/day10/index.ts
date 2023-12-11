@@ -19,7 +19,15 @@ const pipeDescriptions: {
 };
 
 type TileType = '|' | '-' | 'L' | 'J' | '7' | 'F' | '.' | 'S';
-type Tile = { north?: Tile; south?: Tile; west?: Tile; east?: Tile; type: TileType; partOfPile: boolean };
+type Tile = {
+  north?: Tile;
+  south?: Tile;
+  west?: Tile;
+  east?: Tile;
+  type: TileType;
+  partOfPipe: boolean;
+  isInside: boolean;
+};
 type Map = { [key: string]: Tile };
 
 const map: Map = {};
@@ -32,7 +40,8 @@ for (const [y, row] of input.entries()) {
 
     const tile: Tile = {
       type: tileDescription,
-      partOfPile: false,
+      partOfPipe: false,
+      isInside: false,
     };
 
     map[coordinate] = tile;
@@ -46,7 +55,7 @@ for (const mapTileKey of Object.keys(map)) {
 
   if (mapTile.type === 'S') {
     startPosition = mapTile;
-    startPosition.partOfPile = true;
+    startPosition.partOfPipe = true;
   }
 
   if (pipeDescriptions[mapTile.type].north) {
@@ -114,7 +123,7 @@ const runnerVisits: Set<Tile> = new Set([startPosition]);
 // Walk all the pipe
 while (runner01) {
   runnerVisits.add(runner01);
-  runner01.partOfPile = true;
+  runner01.partOfPipe = true;
 
   runner01 = [runner01.north, runner01.south, runner01.west, runner01.east].filter(
     (direction) => !!direction && !runnerVisits.has(direction),
@@ -123,20 +132,56 @@ while (runner01) {
   steps++;
 }
 
-const newMap: Array<string[]> = [];
+const newMap: Array<Tile[]> = [];
 
-const enclosedTiles = 0;
+let enclosedTiles = 0;
 for (const mapTileKey of Object.keys(map)) {
   const mapTile = map[mapTileKey];
   const [mapX, mapY] = mapTileKey.split(':').map(Number);
 
   if (!newMap[mapY]) newMap[mapY] = [];
-  newMap[mapY][mapX] = mapTile.partOfPile ? pipeDescriptions[mapTile.type].ascii : ' ';
-  // newMap[mapY][mapX] = mapTile.partOfPile ? '▓' : ' ';
-
-  if (mapTile.partOfPile) continue;
+  newMap[mapY][mapX] = mapTile;
 }
-console.log(newMap.map((line) => line.join('')).join('\n'));
+
+for (const row of newMap) {
+  let isInside = false;
+  let isUp = false;
+
+  for (const tile of row) {
+    const type = tile.partOfPipe ? tile.type : '.';
+
+    if (type === '|') {
+      isInside = !isInside;
+    } else if (type === 'L' || type === 'F') {
+      isUp = type === 'L';
+    } else if (type === '7' || type === 'J') {
+      if (isUp && type !== 'J') isInside = !isInside;
+      if (!isUp && type !== '7') isInside = !isInside;
+
+      isUp = false;
+    }
+
+    if (tile.partOfPipe) continue;
+
+    if (isInside) {
+      enclosedTiles++;
+      tile.isInside = isInside;
+    }
+  }
+}
+
+console.log(
+  newMap
+    .map((line) =>
+      line
+        .map((tile) => {
+          if (tile.isInside) return '*';
+          return tile.partOfPipe ? pipeDescriptions[tile.type].ascii : ' ';
+        })
+        .join(''),
+    )
+    .join(' \n'),
+);
 
 const part01 = steps / 2;
 process.stdout.write(`Part 01: ${part01.toString()}\n`);
