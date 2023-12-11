@@ -40,39 +40,39 @@ function findDistances(universe: Universe): number {
 function cosmicExpansion(universe: Universe, pow = 2): Universe {
   const columnsToExpand = [];
   const rowsToExpand = [];
-  const expandedUniverse = JSON.parse(JSON.stringify(universe));
+  const expandedUniverse: Universe = JSON.parse(JSON.stringify(universe));
 
-  for (let i = 0; i < universe[0].length; i++) {
-    if (universe.every((row) => !row[i].isGalaxy)) {
+  for (let i = 0; i < expandedUniverse[0].length; i++) {
+    if (expandedUniverse.every((row) => !row[i].isGalaxy)) {
       columnsToExpand.push(i);
     }
   }
-  for (const [index, row] of universe.entries()) {
+  for (const [index, row] of expandedUniverse.entries()) {
     if (row.every((space) => !space.isGalaxy)) {
       rowsToExpand.push(index);
     }
   }
 
   for (const rowToExpand of rowsToExpand) {
-    for (let i = rowToExpand; i < universe.length; i++) {
-      for (const space of universe[i]) {
+    for (let i = rowToExpand; i < expandedUniverse.length; i++) {
+      for (const space of expandedUniverse[i]) {
         if (!space.isGalaxy) continue;
-        space.y += pow;
+        space.y += pow - 1;
       }
     }
   }
 
   for (const columnToExpand of columnsToExpand) {
-    for (const row of universe) {
+    for (const row of expandedUniverse) {
       for (let i = columnToExpand; i < row.length; i++) {
         const space = row[i];
         if (!space.isGalaxy) continue;
-        space.x += pow;
+        space.x += pow - 1;
       }
     }
   }
 
-  return universe;
+  return expandedUniverse;
 }
 
 const universe: Universe = [];
@@ -85,10 +85,10 @@ for (const [y, row] of rawUniverse.entries()) {
   }
 }
 
-const part01Universe = cosmicExpansion(universe, 2 - 1);
+const part01Universe = cosmicExpansion(universe, 2);
 const part01 = findDistances(part01Universe);
 process.stdout.write(`Part 01: ${part01.toString()}\n`);
 
-const part02Universe = cosmicExpansion(universe, 1000000 - 2);
+const part02Universe = cosmicExpansion(universe, 1000000);
 const part02 = findDistances(part02Universe);
 process.stdout.write(`Part 02: ${part02.toString()}\n`);
