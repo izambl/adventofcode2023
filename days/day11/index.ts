@@ -7,34 +7,6 @@ const rawUniverse: Array<string[]> = readInput('days/day11/input01', '\n').map((
 type Space = { isGalaxy: boolean; x: number; y: number };
 type Universe = Array<Space[]>;
 
-function cosmicExpansion(universe: Array<string[]>) {
-  const columnsToExpand = [];
-  const rowsToExpand = [];
-  for (let i = 0; i < universe[0].length; i++) {
-    if (universe.every((row) => row[i] === '.')) {
-      columnsToExpand.push(i);
-    }
-  }
-  for (const [index, row] of universe.entries()) {
-    if (row.every((space) => space === '.')) {
-      rowsToExpand.push(index);
-    }
-  }
-
-  const rowLength = universe[0].length;
-  for (const [i, rowToExpand] of rowsToExpand.entries()) {
-    const newRow = [...Array(rowLength)].map(() => '.');
-    universe.splice(rowToExpand + i, 0, newRow);
-  }
-
-  for (const [i, columnToExpand] of columnsToExpand.entries()) {
-    for (const row of universe) {
-      row.splice(columnToExpand + i, 0, '.');
-    }
-  }
-
-  // console.log(universe.map((line) => line.join('')).join('\n'));
-}
 function findDistance(from: [number, number], to: [number, number]): number {
   let [xa, ya] = from;
   const [xb, yb] = to;
@@ -50,37 +22,81 @@ function findDistance(from: [number, number], to: [number, number]): number {
   }
   return steps;
 }
+function cosmicExpansion(universe: Universe, pow = 2): Universe {
+  const columnsToExpand = [];
+  const rowsToExpand = [];
+  const expandedUniverse = JSON.parse(JSON.stringify(universe));
 
-cosmicExpansion(rawUniverse);
+  for (let i = 0; i < universe[0].length; i++) {
+    if (universe.every((row) => !row[i].isGalaxy)) {
+      columnsToExpand.push(i);
+    }
+  }
+  for (const [index, row] of universe.entries()) {
+    if (row.every((space) => !space.isGalaxy)) {
+      rowsToExpand.push(index);
+    }
+  }
+
+  for (const rowToExpand of rowsToExpand) {
+    for (let i = rowToExpand; i < universe.length; i++) {
+      for (const space of universe[i]) {
+        if (!space.isGalaxy) continue;
+        space.y += pow;
+      }
+    }
+  }
+
+  for (const columnToExpand of columnsToExpand) {
+    for (const row of universe) {
+      for (let i = columnToExpand; i < row.length; i++) {
+        const space = row[i];
+        if (!space.isGalaxy) continue;
+        space.x += pow;
+      }
+    }
+  }
+
+  return universe;
+}
+function findDistances(universe: Universe): number {
+  const galaxyMap: Space[] = [];
+  for (const row of universe) {
+    for (const space of row) {
+      if (space.isGalaxy) galaxyMap.push(space);
+    }
+  }
+
+  const distancesFound: Set<string> = new Set();
+  let totalDistances = 0;
+  for (const [indexFrom, galaxyFrom] of galaxyMap.entries()) {
+    for (const [indexTo, galaxyTo] of galaxyMap.entries()) {
+      if (galaxyFrom === galaxyTo) continue;
+      const distanceKey = [indexFrom, indexTo].sort().join(':');
+      if (distancesFound.has(distanceKey)) continue;
+
+      const distance = findDistance([galaxyFrom.x, galaxyFrom.y], [galaxyTo.x, galaxyTo.y]);
+      distancesFound.add(distanceKey);
+      totalDistances += distance;
+    }
+  }
+
+  return totalDistances;
+}
 
 const universe: Universe = [];
-const galaxyMap: Space[] = [];
 for (const [y, row] of rawUniverse.entries()) {
   for (const [x, space] of row.entries()) {
     if (!universe[y]) universe[y] = [];
 
     const spaceItem = { isGalaxy: space === '#', x, y };
     universe[y][x] = spaceItem;
-
-    if (spaceItem.isGalaxy) galaxyMap.push(spaceItem);
   }
 }
 
-const distancesFound: Set<string> = new Set();
-let totalDistances = 0;
-for (const [indexFrom, galaxyFrom] of galaxyMap.entries()) {
-  for (const [indexTo, galaxyTo] of galaxyMap.entries()) {
-    if (galaxyFrom === galaxyTo) continue;
-    const distanceKey = [indexFrom, indexTo].sort().join(':');
-    if (distancesFound.has(distanceKey)) continue;
+const part01Universe = cosmicExpansion(universe, 1);
 
-    const distance = findDistance([galaxyFrom.x, galaxyFrom.y], [galaxyTo.x, galaxyTo.y]);
-    distancesFound.add(distanceKey);
-    totalDistances += distance;
-  }
-}
-
-const part01 = totalDistances;
+const part01 = findDistances(part01Universe);
 process.stdout.write(`Part 01: ${part01.toString()}\n`);
 
 const part02 = 0;
