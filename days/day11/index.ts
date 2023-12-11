@@ -8,19 +8,34 @@ type Space = { isGalaxy: boolean; x: number; y: number };
 type Universe = Array<Space[]>;
 
 function findDistance(from: [number, number], to: [number, number]): number {
-  let [xa, ya] = from;
+  const [xa, ya] = from;
   const [xb, yb] = to;
-  let steps = 0;
 
-  while (xa !== xb || ya !== yb) {
-    steps++;
-    if (Math.abs(xa - xb) >= Math.abs(ya - yb)) {
-      xa += xa < xb ? 1 : -1;
-    } else {
-      ya += ya < yb ? 1 : -1;
+  return Math.abs(xa - xb) + Math.abs(ya - yb);
+}
+function findDistances(universe: Universe): number {
+  const galaxyMap: Space[] = [];
+  for (const row of universe) {
+    for (const space of row) {
+      if (space.isGalaxy) galaxyMap.push(space);
     }
   }
-  return steps;
+
+  const distancesFound: Set<string> = new Set();
+  let totalDistances = 0;
+  for (const [indexFrom, galaxyFrom] of galaxyMap.entries()) {
+    for (const [indexTo, galaxyTo] of galaxyMap.entries()) {
+      if (galaxyFrom === galaxyTo) continue;
+      const distanceKey = [indexFrom, indexTo].sort().join(':');
+      if (distancesFound.has(distanceKey)) continue;
+
+      const distance = findDistance([galaxyFrom.x, galaxyFrom.y], [galaxyTo.x, galaxyTo.y]);
+      distancesFound.add(distanceKey);
+      totalDistances += distance;
+    }
+  }
+
+  return totalDistances;
 }
 function cosmicExpansion(universe: Universe, pow = 2): Universe {
   const columnsToExpand = [];
@@ -59,30 +74,6 @@ function cosmicExpansion(universe: Universe, pow = 2): Universe {
 
   return universe;
 }
-function findDistances(universe: Universe): number {
-  const galaxyMap: Space[] = [];
-  for (const row of universe) {
-    for (const space of row) {
-      if (space.isGalaxy) galaxyMap.push(space);
-    }
-  }
-
-  const distancesFound: Set<string> = new Set();
-  let totalDistances = 0;
-  for (const [indexFrom, galaxyFrom] of galaxyMap.entries()) {
-    for (const [indexTo, galaxyTo] of galaxyMap.entries()) {
-      if (galaxyFrom === galaxyTo) continue;
-      const distanceKey = [indexFrom, indexTo].sort().join(':');
-      if (distancesFound.has(distanceKey)) continue;
-
-      const distance = findDistance([galaxyFrom.x, galaxyFrom.y], [galaxyTo.x, galaxyTo.y]);
-      distancesFound.add(distanceKey);
-      totalDistances += distance;
-    }
-  }
-
-  return totalDistances;
-}
 
 const universe: Universe = [];
 for (const [y, row] of rawUniverse.entries()) {
@@ -94,10 +85,10 @@ for (const [y, row] of rawUniverse.entries()) {
   }
 }
 
-const part01Universe = cosmicExpansion(universe, 1);
-
+const part01Universe = cosmicExpansion(universe, 2 - 1);
 const part01 = findDistances(part01Universe);
 process.stdout.write(`Part 01: ${part01.toString()}\n`);
 
-const part02 = 0;
+const part02Universe = cosmicExpansion(universe, 1000000 - 2);
+const part02 = findDistances(part02Universe);
 process.stdout.write(`Part 02: ${part02.toString()}\n`);
