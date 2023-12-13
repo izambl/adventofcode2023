@@ -23,9 +23,9 @@ function buildFinalCondition(condition: number[]): RegExp {
 function buildTestCondition(condition: number[]): RegExp {
   const regexp: string[] = [];
 
-  regexp.push('^\\.*');
-  regexp.push(condition.map((num) => `[?#]{${num}}`).join('\\.+'));
-  regexp.push('\\.*$');
+  regexp.push('^[\\.?]*');
+  regexp.push(condition.map((num) => `[?#]{${num}}`).join('[\\.?]+'));
+  regexp.push('[\\.?]*$');
 
   return new RegExp(regexp.join(''));
 }
@@ -76,12 +76,26 @@ function walkCondition(
   return 1;
 }
 
+function walkCondition2(string: string, testCondition: RegExp, validCondition: RegExp, log: () => void) {
+  if (!testCondition.test(string)) return;
+
+  if (string.indexOf('?') === -1) {
+    if (validCondition.test(string)) {
+      log();
+      return;
+    }
+  } else {
+    walkCondition2(string.replace('?', '#'), testCondition, validCondition, log);
+    walkCondition2(string.replace('?', '.'), testCondition, validCondition, log);
+  }
+}
+
 let validArrangement = 0;
 function log() {
   validArrangement += 1;
 }
 for (const { conditionRecord, condition } of springs) {
-  walkCondition(conditionRecord, buildFinalCondition(condition), log);
+  walkCondition2(conditionRecord.join(''), buildTestCondition(condition), buildFinalCondition(condition), log);
 }
 const part01 = validArrangement;
 process.stdout.write(`Part 01: ${part01}\n`);
@@ -90,11 +104,17 @@ let validArrangement2 = 0;
 function log2() {
   validArrangement2 += 1;
 }
+let count = 0;
 for (const { conditionRecord, condition } of springs) {
   const [newConditionRecord, newCondition] = copyConditions(conditionRecord, condition, 5);
 
-  walkCondition(newConditionRecord, buildFinalCondition(newCondition), log2);
-  console.log(validArrangement2);
+  walkCondition2(
+    newConditionRecord.join(''),
+    buildTestCondition(newCondition),
+    buildFinalCondition(newCondition),
+    log2,
+  );
+  console.log(++count, 'of', springs.length, `[${validArrangement2}]`);
 }
 
 const part02 = validArrangement2;
