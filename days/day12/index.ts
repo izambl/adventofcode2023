@@ -3,7 +3,7 @@
 
 import { readInput } from '../../common/index';
 
-const input: Array<string[]> = readInput('days/day12/input01', '\n').map((row) => row.split(' '));
+const input: Array<string[]> = readInput('days/day12/inputDemo', '\n').map((row) => row.split(' '));
 type Spring = { conditionRecord: string[]; condition: number[] };
 
 const springs: Spring[] = input.map(([springsString, conditionString]) => {
@@ -67,22 +67,110 @@ for (const { conditionRecord, condition } of springs) {
 const part01 = validArrangement;
 process.stdout.write(`Part 01: ${part01}\n`);
 
-let validArrangement2 = 0;
-let count = 0;
-for (const { conditionRecord, condition } of springs) {
-  const [newConditionRecord, newCondition] = copyConditions(conditionRecord, condition, 5);
+function getPossibleStrings(conditionRecord: string[], condition: number[]): string[] {
+  const defectiveMapLength = condition.reduce((total, actual) => total + actual) + condition.length - 1;
 
-  walkCondition2(
-    newConditionRecord.join(''),
-    buildTestCondition(newCondition),
-    buildFinalCondition(newCondition),
-    () => {
-      validArrangement2++;
-    },
-  );
+  const freePositions = conditionRecord.length - defectiveMapLength;
+  const positionsToFill = condition.length + 1;
 
-  console.log(++count, 'of', springs.length, `[${validArrangement2}]`);
+  const possiblePositions: Array<number[]> = [];
+
+  function walk(maxSpaces: number, maxPositions: number, currentPosition = 0, currentArray: number[] = []) {
+    for (let i = 0; i <= maxSpaces; i++) {
+      const array = [...currentArray];
+      array[currentPosition] = i;
+
+      if (currentArray.reduce((total, actual) => total + actual, 0) > maxSpaces) return;
+
+      if (currentPosition < maxPositions) {
+        walk(maxSpaces, maxPositions, currentPosition + 1, array);
+      } else {
+        const arraySum = array.reduce((total, actual) => total + actual);
+        if (arraySum === maxSpaces) {
+          possiblePositions.push(array);
+        }
+      }
+    }
+  }
+
+  walk(freePositions, positionsToFill - 1);
+
+  const defectiveString = condition.map((num) => '#'.repeat(num));
+  const testStrings = [];
+  for (const possiblePositon of possiblePositions) {
+    const workingString = possiblePositon.map((num) => '.'.repeat(num));
+    const def = [...defectiveString];
+    const newString = [];
+
+    while (workingString.length) {
+      newString.push(workingString.shift());
+      if (def.length) {
+        newString.push(def.shift());
+        if (def.length !== 0) {
+          newString.push('.');
+        }
+      }
+    }
+    testStrings.push(newString.join(''));
+  }
+
+  return testStrings;
+}
+function checkStringValidity(possibleString: string, conditionString: string): boolean {
+  for (let i = 0; i < possibleString.length; i++) {
+    if (possibleString[i] === '#') {
+      if (conditionString[i] === '.') {
+        return false;
+      }
+    }
+    if (possibleString[i] === '.') {
+      if (conditionString[i] === '#') {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
-const part02 = validArrangement2;
-process.stdout.write(`Part 02: ${part02}\n`);
+let countPart01 = 0;
+for (const { conditionRecord, condition } of springs) {
+  const possibleStrings = getPossibleStrings(conditionRecord, condition);
+  const conditionRecordString = conditionRecord.join('');
+
+  const validStrings = possibleStrings.reduce((total, possibleString) => {
+    if (checkStringValidity(possibleString, conditionRecordString)) {
+      return total + 1;
+    }
+    return total;
+  }, 0);
+
+  countPart01 += validStrings;
+}
+process.stdout.write(`Part 01: ${countPart01}\n`);
+
+let countPart02 = 0;
+for (const { conditionRecord: a, condition: b } of springs) {
+  const [conditionRecord, condition] = copyConditions(a, b, 5);
+
+  const possibleStrings = getPossibleStrings(conditionRecord, condition);
+  const conditionRecordString = conditionRecord.join('');
+
+  const validStrings = possibleStrings.reduce((total, possibleString) => {
+    if (checkStringValidity(possibleString, conditionRecordString)) {
+      return total + 1;
+    }
+    return total;
+  }, 0);
+
+  countPart02 += validStrings;
+}
+process.stdout.write(`Part 02: ${countPart02}\n`); // ?###????????
+// ###, ##, #
+// find every possible position for ###
+
+//  ###
+//      ###
+//       ###
+//        ###
+
+// after, find every possible position for ##
