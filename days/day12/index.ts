@@ -3,7 +3,7 @@
 
 import { readInput } from '../../common/index';
 
-const input: Array<string[]> = readInput('days/day12/inputDemo', '\n').map((row) => row.split(' '));
+const input: Array<string[]> = readInput('days/day12/input01', '\n').map((row) => row.split(' '));
 type Spring = { conditionRecord: string[]; condition: number[] };
 
 const springs: Spring[] = input.map(([springsString, conditionString]) => {
@@ -44,38 +44,6 @@ function copyConditions(conditionRecord: string[], condition: number[], times: n
   return [newConditionRecord, newCondition];
 }
 
-function walkCondition(
-  record: string[],
-  condition: RegExp,
-  log: () => void,
-  totalString = '',
-  startPosition = 0,
-): number {
-  let string = totalString;
-  if (record.length - startPosition + string.length !== record.length) {
-    return 1;
-  }
-
-  for (let i = startPosition; i < record.length; i++) {
-    const rec = record[i];
-
-    if (rec === '.' || rec === '#') {
-      string += rec;
-    }
-    if (rec === '?') {
-      walkCondition(record, condition, log, `${string}#`, i + 1);
-      walkCondition(record, condition, log, `${string}.`, i + 1);
-      break;
-    }
-  }
-
-  if (string.length === record.length && string.match(condition)) {
-    log();
-  }
-
-  return 1;
-}
-
 function walkCondition2(string: string, testCondition: RegExp, validCondition: RegExp, log: () => void) {
   if (!testCondition.test(string)) return;
 
@@ -91,19 +59,15 @@ function walkCondition2(string: string, testCondition: RegExp, validCondition: R
 }
 
 let validArrangement = 0;
-function log() {
-  validArrangement += 1;
-}
 for (const { conditionRecord, condition } of springs) {
-  walkCondition2(conditionRecord.join(''), buildTestCondition(condition), buildFinalCondition(condition), log);
+  walkCondition2(conditionRecord.join(''), buildTestCondition(condition), buildFinalCondition(condition), () => {
+    validArrangement++;
+  });
 }
 const part01 = validArrangement;
 process.stdout.write(`Part 01: ${part01}\n`);
 
 let validArrangement2 = 0;
-function log2() {
-  validArrangement2 += 1;
-}
 let count = 0;
 for (const { conditionRecord, condition } of springs) {
   const [newConditionRecord, newCondition] = copyConditions(conditionRecord, condition, 5);
@@ -112,8 +76,11 @@ for (const { conditionRecord, condition } of springs) {
     newConditionRecord.join(''),
     buildTestCondition(newCondition),
     buildFinalCondition(newCondition),
-    log2,
+    () => {
+      validArrangement2++;
+    },
   );
+
   console.log(++count, 'of', springs.length, `[${validArrangement2}]`);
 }
 
