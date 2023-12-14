@@ -7,7 +7,6 @@ type RockType = 'Round' | 'Cube';
 type Rock = {
   x: number;
   y: number;
-  value: number;
   type: RockType;
 };
 type RockInLane = {
@@ -52,7 +51,6 @@ for (const [y, row] of rawTerrain.entries()) {
       const rock: Rock = {
         x: Number(x),
         y: Number(y),
-        value: rawTerrain.length - y,
         type: tile === '#' ? 'Cube' : 'Round',
       };
       if (rock.type === 'Round') roundRocks.push(rock);
@@ -85,10 +83,8 @@ for (const laneNumber of Object.keys(lanes)) {
       if (currentRock.prev) {
         const valueDiff = currentRock.rock.y - currentRock.prev.rock.y;
         currentRock.rock.y = currentRock.prev.rock.y + 1;
-        currentRock.rock.value = rawTerrain.length - currentRock.rock.y;
       } else if (currentRock.rock.y !== 0) {
         currentRock.rock.y = 0;
-        currentRock.rock.value = rawTerrain.length;
       }
     }
     currentRock = currentRock.next;
@@ -97,7 +93,7 @@ for (const laneNumber of Object.keys(lanes)) {
 
 printLanes();
 
-const part01 = roundRocks.reduce((total, rock) => total + rock.value, 0);
+const part01 = roundRocks.reduce((total, rock) => total + (rawTerrain.length - rock.y), 0);
 process.stdout.write(`Part 01: ${part01}\n`);
 
 const part02 = 0;
