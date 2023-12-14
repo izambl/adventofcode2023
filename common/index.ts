@@ -111,3 +111,15 @@ export function* primeGenerator(): Generator<number> {
     currentNumber++;
   }
 }
+
+export function flipArray<T>(originalArray: Array<T[]>): Array<T[]> {
+  const flippedArray: Array<T[]> = [...Array(originalArray[0].length)].map(() => []);
+
+  for (const [rowIndex, row] of originalArray.entries()) {
+    for (const [columnIndex, column] of row.entries()) {
+      flippedArray[columnIndex][rowIndex] = column;
+    }
+  }
+
+  return flippedArray;
+}
