@@ -112,7 +112,7 @@ for (let x = -1; x <= rawTerrain[0].length; x++) {
   }
 }
 
-function printMap(debug = false) {
+function generateMap(debug = false): string {
   let mapString = '';
   let rowBlock = mapSpotMap[-1][-1];
 
@@ -133,7 +133,7 @@ function printMap(debug = false) {
           mapString += '*';
         }
       } else {
-        mapString += columnBlock.type === 'O' ? columnBlock.y : columnBlock.type;
+        mapString += columnBlock.type;
       }
 
       if (debug && columnBlock.east) mapString += '>';
@@ -145,7 +145,7 @@ function printMap(debug = false) {
     rowBlock = rowBlock.south;
   }
 
-  console.log(mapString);
+  return mapString;
 }
 
 function switchPositions(a: MapSpot, b: MapSpot) {
@@ -201,13 +201,41 @@ function countPressureOnTheNorthWall(): number {
   return total;
 }
 
-printMap(false);
-tiltMap('north');
-console.log('flippening');
-printMap(false);
+console.log(generateMap());
 
-const part01 = countPressureOnTheNorthWall();
+let count = 0;
+const mapsCache: { [key: string]: number } = {};
+
+let part01 = 0;
+let countCycle = 0;
+const cycleValues = [];
+while (count++ < 1000) {
+  tiltMap('north');
+  if (!part01) {
+    part01 = countPressureOnTheNorthWall();
+  }
+  tiltMap('west');
+  tiltMap('south');
+  tiltMap('east');
+  const map = generateMap();
+  if (!mapsCache[map]) {
+    mapsCache[map] = 1;
+  } else {
+    mapsCache[map]++;
+  }
+
+  if (mapsCache[map] === 2) {
+    countCycle++;
+    cycleValues.push(countPressureOnTheNorthWall());
+  }
+  if (mapsCache[map] === 3) {
+    break;
+  }
+}
+
+console.log(generateMap());
+
 process.stdout.write(`Part 01: ${part01}\n`);
 
-const part02 = 0;
+const part02 = cycleValues[(1_000_000_000 - count) % cycleValues.length];
 process.stdout.write(`Part 02: ${part02}\n`);
