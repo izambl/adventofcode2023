@@ -19,7 +19,6 @@ const opositeDirections: { [key in Directions]: Directions } = {
 
 const northWall: MapSpot[] = [];
 const cubeRocks: MapSpot[] = [];
-const roundRocks: MapSpot[] = [];
 const mapSpotMap: { [xKey: string]: { [yKey: string]: MapSpot } } = {};
 
 // Build map - phase 1, create map spots
@@ -36,7 +35,6 @@ for (const [y, row] of rawTerrain.entries()) {
     };
 
     if (mapSpot.type === '#') cubeRocks.push(mapSpot);
-    if (mapSpot.type === 'O') roundRocks.push(mapSpot);
 
     if (!mapSpotMap[x]) mapSpotMap[x] = {};
 
@@ -52,14 +50,14 @@ for (let x = 0; x < rawTerrain[0].length; x++) {
     type: '#',
     north: null,
     west: null,
-    south: mapSpotMap[x][0],
+    south: null,
     east: null,
     x: x,
     y: -1,
   };
   const southWallBlock: MapSpot = {
     type: '#',
-    north: mapSpotMap[x][rawTerrain.length - 1],
+    north: null,
     west: null,
     south: null,
     east: null,
@@ -69,9 +67,6 @@ for (let x = 0; x < rawTerrain[0].length; x++) {
 
   mapSpotMap[x][-1] = northWallBlock;
   mapSpotMap[x][rawTerrain.length] = southWallBlock;
-
-  mapSpotMap[x][0].north = northWallBlock;
-  mapSpotMap[x][rawTerrain.length - 1].south = southWallBlock;
 
   cubeRocks.push(northWallBlock);
   cubeRocks.push(southWallBlock);
@@ -84,14 +79,14 @@ for (let y = -1; y <= rawTerrain.length; y++) {
     north: null,
     west: null,
     south: null,
-    east: mapSpotMap[0][y],
+    east: null,
     x: -1,
     y: y,
   };
   const eastWallBlock: MapSpot = {
     type: '#',
     north: null,
-    west: mapSpotMap[0][rawTerrain.length - 1],
+    west: null,
     south: null,
     east: null,
     x: rawTerrain[0].length,
@@ -100,9 +95,6 @@ for (let y = -1; y <= rawTerrain.length; y++) {
 
   mapSpotMap[-1][y] = westWallBlock;
   mapSpotMap[rawTerrain[0].length][y] = eastWallBlock;
-
-  mapSpotMap[0][y].west = westWallBlock;
-  mapSpotMap[rawTerrain.length - 1][y].east = eastWallBlock;
 
   cubeRocks.push(westWallBlock);
   cubeRocks.push(eastWallBlock);
@@ -120,15 +112,32 @@ for (let x = -1; x <= rawTerrain[0].length; x++) {
   }
 }
 
-function printMap(firstBlock: MapSpot) {
+function printMap(debug = false) {
   let mapString = '';
-  let rowBlock = firstBlock;
+  let rowBlock = mapSpotMap[-1][-1];
 
   while (rowBlock) {
     let columnBlock = rowBlock;
 
     while (columnBlock) {
-      mapString += columnBlock.type;
+      if (debug && columnBlock.west) mapString += '<';
+
+      if (debug) {
+        if (columnBlock.north && columnBlock.south) {
+          mapString += '↕';
+        } else if (columnBlock.north) {
+          mapString += '↑';
+        } else if (columnBlock.south) {
+          mapString += '↓';
+        } else {
+          mapString += '*';
+        }
+      } else {
+        mapString += columnBlock.type === 'O' ? columnBlock.y : columnBlock.type;
+      }
+
+      if (debug && columnBlock.east) mapString += '>';
+
       columnBlock = columnBlock.east;
     }
 
@@ -140,71 +149,64 @@ function printMap(firstBlock: MapSpot) {
 }
 
 function switchPositions(a: MapSpot, b: MapSpot) {
-  const aNorth = a.north;
-  const aWest = a.west;
-  const aSouth = a.south;
-  const aEast = a.east;
-  const bNorth = b.north;
-  const bWest = b.west;
-  const bSouth = b.south;
-  const bEast = b.east;
-  const aX = a.x;
-  const aY = a.y;
-  const bX = b.x;
-  const bY = b.y;
+  const aType = a.type;
+  const bType = b.type;
 
-  a.north = bNorth;
-  bNorth.south = a;
-  a.west = bWest;
-  bWest.east = a;
-  a.south = bSouth;
-  bSouth.north = a;
-  a.east = bEast;
-  bEast.west = a;
-
-  b.north = aNorth;
-  aNorth.south = b;
-  b.west = aWest;
-  aWest.east = b;
-  b.south = aSouth;
-  aSouth.north = b;
-  b.east = aEast;
-  aEast.west = b;
-
-  a.x = bX;
-  a.y = bY;
-  b.x = aX;
-  b.y = aY;
+  a.type = bType;
+  b.type = aType;
 }
 
-function tiltMap(north: Directions) {
-  const south = opositeDirections[north];
+function tiltMap(west: Directions) {
+  const east = opositeDirections[west];
 
   for (const cubeRock of cubeRocks) {
     const openSpaces: MapSpot[] = [];
-    let currentPosition = cubeRock[south];
+    let currentPosition = cubeRock[east];
 
     while (currentPosition && currentPosition.type !== '#') {
       if (currentPosition.type === '.') openSpaces.push(currentPosition);
 
       if (currentPosition.type === 'O' && openSpaces.length) {
         const opensSpace = openSpaces.shift();
+
         switchPositions(currentPosition, opensSpace);
 
-        currentPosition = opensSpace;
         continue;
       }
 
-      currentPosition = currentPosition[south];
+      currentPosition = currentPosition[east];
     }
   }
 }
 
-printMap(northWall[0].west);
-tiltMap('north');
-printMap(northWall[0].west);
+function countPressureOnTheNorthWall(): number {
+  let rowBlock = mapSpotMap[-1][-1];
+  let total = 0;
+  let row = rawTerrain.length + 1;
 
-const part01 = roundRocks.reduce((total, rock) => total + (rawTerrain.length - rock.y), 0);
+  while (rowBlock) {
+    let columnBlock = rowBlock;
+
+    while (columnBlock) {
+      if (columnBlock.type === 'O') {
+        total += row;
+      }
+      columnBlock = columnBlock.east;
+    }
+
+    row -= 1;
+    rowBlock = rowBlock.south;
+  }
+
+  return total;
+}
+
+printMap(false);
+tiltMap('north');
+console.log('flippening');
+printMap(false);
+
+const part01 = countPressureOnTheNorthWall();
 process.stdout.write(`Part 01: ${part01}\n`);
 
 const part02 = 0;
