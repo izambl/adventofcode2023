@@ -9,7 +9,7 @@ type MapSpotType = '#' | 'O' | '.';
 type Directions = 'north' | 'west' | 'south' | 'east';
 type MapSpot = {
   [key in Directions]: MapSpot | null;
-} & { type: MapSpotType; x: number; y: number };
+} & { type: MapSpotType };
 const opositeDirections: { [key in Directions]: Directions } = {
   north: 'south',
   west: 'east',
@@ -30,8 +30,6 @@ for (const [y, row] of rawTerrain.entries()) {
       west: null,
       south: null,
       east: null,
-      x,
-      y,
     };
 
     if (mapSpot.type === '#') cubeRocks.push(mapSpot);
@@ -52,8 +50,6 @@ for (let x = 0; x < rawTerrain[0].length; x++) {
     west: null,
     south: null,
     east: null,
-    x: x,
-    y: -1,
   };
   const southWallBlock: MapSpot = {
     type: '#',
@@ -61,8 +57,6 @@ for (let x = 0; x < rawTerrain[0].length; x++) {
     west: null,
     south: null,
     east: null,
-    x: x,
-    y: rawTerrain.length,
   };
 
   mapSpotMap[x][-1] = northWallBlock;
@@ -80,8 +74,6 @@ for (let y = -1; y <= rawTerrain.length; y++) {
     west: null,
     south: null,
     east: null,
-    x: -1,
-    y: y,
   };
   const eastWallBlock: MapSpot = {
     type: '#',
@@ -89,8 +81,6 @@ for (let y = -1; y <= rawTerrain.length; y++) {
     west: null,
     south: null,
     east: null,
-    x: rawTerrain[0].length,
-    y: y,
   };
 
   mapSpotMap[-1][y] = westWallBlock;
@@ -156,12 +146,12 @@ function switchPositions(a: MapSpot, b: MapSpot) {
   b.type = aType;
 }
 
-function tiltMap(west: Directions) {
-  const east = opositeDirections[west];
+function tiltMap(tiltDirection: Directions) {
+  const pullTilesFrom = opositeDirections[tiltDirection];
 
   for (const cubeRock of cubeRocks) {
     const openSpaces: MapSpot[] = [];
-    let currentPosition = cubeRock[east];
+    let currentPosition = cubeRock[pullTilesFrom];
 
     while (currentPosition && currentPosition.type !== '#') {
       if (currentPosition.type === '.') openSpaces.push(currentPosition);
@@ -174,7 +164,7 @@ function tiltMap(west: Directions) {
         continue;
       }
 
-      currentPosition = currentPosition[east];
+      currentPosition = currentPosition[pullTilesFrom];
     }
   }
 }
