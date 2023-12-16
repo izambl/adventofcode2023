@@ -1,6 +1,7 @@
 // https://adventofcode.com/2023/day/16
 // Day 16: The Floor Will Be Lava
 
+import { Dir } from 'fs';
 import { readInput } from '../../common/index';
 
 const rawTerrain = readInput('days/day16/input01', '\n').map((row) => row.split(''));
@@ -9,7 +10,7 @@ type MapTileType = '|' | '-' | '\\' | '/' | '.';
 type Directions = 'north' | 'west' | 'south' | 'east';
 type MapTile = {
   [key in Directions]: MapTile | null;
-} & { type: MapTileType; energized: boolean; id: number };
+} & { type: MapTileType; id: string };
 
 function createLinkedMap(rawMap: Array<string[]>): MapTile {
   const mapSpotMap: { [xKey: string]: { [yKey: string]: MapTile } } = {};
@@ -23,8 +24,7 @@ function createLinkedMap(rawMap: Array<string[]>): MapTile {
         west: null,
         south: null,
         east: null,
-        energized: false,
-        id: ++id,
+        id: String(++id),
       };
 
       if (!mapSpotMap[x]) mapSpotMap[x] = {};
@@ -46,7 +46,7 @@ function createLinkedMap(rawMap: Array<string[]>): MapTile {
 
   return mapSpotMap[0][0];
 }
-function generateMap(firstMapTile: MapTile, type: keyof MapTile, debug = false): string {
+function generateMap(firstMapTile: MapTile, debug = false): string {
   let mapString = '';
 
   let currentTile = firstMapTile;
@@ -68,7 +68,7 @@ function generateMap(firstMapTile: MapTile, type: keyof MapTile, debug = false):
           mapString += '*';
         }
       } else {
-        mapString += typeof columnBlock[type] === 'boolean' ? (columnBlock[type] ? 1 : 0) : columnBlock[type];
+        mapString += columnBlock.type;
       }
 
       if (debug && columnBlock.east) mapString += '>';
@@ -82,74 +82,58 @@ function generateMap(firstMapTile: MapTile, type: keyof MapTile, debug = false):
 
   return mapString;
 }
-function countEnergizedTiles(firstMapTile: MapTile): number {
-  let rowBlock = firstMapTile;
-  let total = 0;
-
-  while (rowBlock) {
-    let columnBlock = rowBlock;
-
-    while (columnBlock) {
-      if (columnBlock.energized) {
-        total += 1;
-      }
-      columnBlock = columnBlock.east;
-    }
-
-    rowBlock = rowBlock.south;
-  }
-
-  return total;
-}
 
 const firstTile = createLinkedMap(rawTerrain);
 
-const beams: Set<{ tile: MapTile; direction: Directions }> = new Set([{ tile: firstTile, direction: 'east' }]);
-const tilesVisitedCache: { [key: string]: true } = {};
+function getEnergizedTiles(tile: MapTile, direction: Directions): number {
+  const beams: Set<{ tile: MapTile; direction: Directions }> = new Set([{ tile, direction }]);
+  const tilesVisitedCache: { [key: string]: { [key in Directions]?: true } } = {};
+  while (beams.size) {
+    for (const beam of beams) {
+      if (!tilesVisitedCache[beam.tile.id]) tilesVisitedCache[beam.tile.id] = {};
+      tilesVisitedCache[beam.tile.id][beam.direction] = true;
 
-while (beams.size) {
-  for (const beam of beams) {
-    tilesVisitedCache[`${beam.tile.id}:${beam.direction}`] = true;
+      switch (beam.tile.type) {
+        case '-':
+          if (beam.direction !== 'east' && beam.direction !== 'west') {
+            beam.direction = 'west';
+            beams.add({ tile: beam.tile, direction: 'east' });
+          }
+          break;
+        case '|':
+          if (beam.direction !== 'north' && beam.direction !== 'south') {
+            beam.direction = 'north';
+            beams.add({ tile: beam.tile, direction: 'south' });
+          }
+          break;
+        case '/':
+          if (beam.direction === 'west') beam.direction = 'south';
+          else if (beam.direction === 'east') beam.direction = 'north';
+          else if (beam.direction === 'north') beam.direction = 'east';
+          else if (beam.direction === 'south') beam.direction = 'west';
+          break;
+        case '\\':
+          if (beam.direction === 'west') beam.direction = 'north';
+          else if (beam.direction === 'east') beam.direction = 'south';
+          else if (beam.direction === 'north') beam.direction = 'west';
+          else if (beam.direction === 'south') beam.direction = 'east';
+          break;
+      }
 
-    switch (beam.tile.type) {
-      case '-':
-        if (beam.direction !== 'east' && beam.direction !== 'west') {
-          beam.direction = 'west';
-          beams.add({ tile: beam.tile, direction: 'east' });
-        }
-        break;
-      case '|':
-        if (beam.direction !== 'north' && beam.direction !== 'south') {
-          beam.direction = 'north';
-          beams.add({ tile: beam.tile, direction: 'south' });
-        }
-        break;
-      case '/':
-        if (beam.direction === 'west') beam.direction = 'south';
-        else if (beam.direction === 'east') beam.direction = 'north';
-        else if (beam.direction === 'north') beam.direction = 'east';
-        else if (beam.direction === 'south') beam.direction = 'west';
-        break;
-      case '\\':
-        if (beam.direction === 'west') beam.direction = 'north';
-        else if (beam.direction === 'east') beam.direction = 'south';
-        else if (beam.direction === 'north') beam.direction = 'west';
-        else if (beam.direction === 'south') beam.direction = 'east';
-        break;
-    }
+      beam.tile = beam.tile[beam.direction];
 
-    beam.tile.energized = true;
-    beam.tile = beam.tile[beam.direction];
-
-    if (!beam.tile || tilesVisitedCache[`${beam.tile.id}:${beam.direction}`]) {
-      beams.delete(beam);
+      if (!beam.tile || tilesVisitedCache[beam.tile.id]?.[beam.direction]) {
+        beams.delete(beam);
+      }
     }
   }
+
+  return Object.keys(tilesVisitedCache).length;
 }
 
-console.log(generateMap(firstTile, 'energized'));
+console.log(generateMap(firstTile));
 
-const part01 = countEnergizedTiles(firstTile);
+const part01 = getEnergizedTiles(firstTile, 'east');
 process.stdout.write(`Part 01: ${part01}\n`);
 
 const part02 = 2;
