@@ -1,15 +1,14 @@
 // https://adventofcode.com/2023/day/16
 // Day 16: The Floor Will Be Lava
 
-import { Dir } from 'fs';
 import { readInput } from '../../common/index';
 
 const rawTerrain = readInput('days/day16/input01', '\n').map((row) => row.split(''));
 
 type MapTileType = '|' | '-' | '\\' | '/' | '.';
-type Directions = 'north' | 'west' | 'south' | 'east';
+type Direction = 'north' | 'west' | 'south' | 'east';
 type MapTile = {
-  [key in Directions]: MapTile | null;
+  [key in Direction]: MapTile | null;
 } & { type: MapTileType; id: string };
 
 function createLinkedMap(rawMap: Array<string[]>): MapTile {
@@ -85,9 +84,9 @@ function generateMap(firstMapTile: MapTile, debug = false): string {
 
 const firstTile = createLinkedMap(rawTerrain);
 
-function getEnergizedTiles(tile: MapTile, direction: Directions): number {
-  const beams: Set<{ tile: MapTile; direction: Directions }> = new Set([{ tile, direction }]);
-  const tilesVisitedCache: { [key: string]: { [key in Directions]?: true } } = {};
+function getEnergizedTiles(tile: MapTile, direction: Direction): number {
+  const beams: Set<{ tile: MapTile; direction: Direction }> = new Set([{ tile, direction }]);
+  const tilesVisitedCache: { [key: string]: { [key in Direction]?: true } } = {};
   while (beams.size) {
     for (const beam of beams) {
       if (!tilesVisitedCache[beam.tile.id]) tilesVisitedCache[beam.tile.id] = {};
@@ -136,5 +135,48 @@ console.log(generateMap(firstTile));
 const part01 = getEnergizedTiles(firstTile, 'east');
 process.stdout.write(`Part 01: ${part01}\n`);
 
-const part02 = 2;
+function getEdgesAndDirections(firstTile: MapTile): Array<[MapTile, Direction]> {
+  const edgesAndDirections: Array<[MapTile, Direction]> = [];
+  let currentTile = firstTile;
+
+  while (currentTile) {
+    let columnBlock = currentTile;
+
+    while (columnBlock) {
+      if (!columnBlock.north && !columnBlock.west) {
+        edgesAndDirections.push([columnBlock, 'south']);
+        edgesAndDirections.push([columnBlock, 'east']);
+      } else if (!columnBlock.north && !columnBlock.east) {
+        edgesAndDirections.push([columnBlock, 'south']);
+        edgesAndDirections.push([columnBlock, 'west']);
+      } else if (!columnBlock.south && !columnBlock.east) {
+        edgesAndDirections.push([columnBlock, 'north']);
+        edgesAndDirections.push([columnBlock, 'west']);
+      } else if (!columnBlock.west && !columnBlock.south) {
+        edgesAndDirections.push([columnBlock, 'north']);
+        edgesAndDirections.push([columnBlock, 'east']);
+      } else if (!columnBlock.north) {
+        edgesAndDirections.push([columnBlock, 'south']);
+      } else if (!columnBlock.west) {
+        edgesAndDirections.push([columnBlock, 'east']);
+      } else if (!columnBlock.south) {
+        edgesAndDirections.push([columnBlock, 'north']);
+      } else if (!columnBlock.east) {
+        edgesAndDirections.push([columnBlock, 'west']);
+      }
+
+      columnBlock = columnBlock.east;
+    }
+
+    currentTile = currentTile.south;
+  }
+
+  return edgesAndDirections;
+}
+
+const possibleEnergizedTiles = getEdgesAndDirections(firstTile).map(([edgeTile, direction]) =>
+  getEnergizedTiles(edgeTile, direction),
+);
+
+const part02 = Math.max(...possibleEnergizedTiles);
 process.stdout.write(`Part 02: ${part02}\n`);
