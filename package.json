@@ -7,7 +7,7 @@
     "format": "biome format --write ./days ./common",
     "lint": "biome check ./days ./common",
     "lint:fix": "biome check --apply ./days ./common",
-    "day": "ts-node ./days/dayRunner"
+    "day": "node -r ts-node/register --stack-size=15000 --max-old-space-size=8192 ./days/dayRunner"
   },
   "author": "Ismael b. <ismael@recursivamente.com>",
   "license": "ISC",
