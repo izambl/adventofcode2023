@@ -1,9 +1,10 @@
 // https://adventofcode.com/2023/day/17
 // Day 17: Clumsy Crucible
 
+import { max, min } from 'lodash';
 import { readInput } from '../../common/index';
 
-const input = readInput('days/day17/inputDemo', '\n').map((row) => row.split(''));
+const input = readInput('days/day17/input01', '\n').map((row) => row.split(''));
 
 type Direction = 'north' | 'west' | 'south' | 'east';
 type MapTile = {
@@ -11,9 +12,9 @@ type MapTile = {
 } & { heatLose: number; id: string };
 
 const directionSides: { [key in Direction]: [Direction, Direction] } = {
-  north: ['east', 'west'],
+  north: ['west', 'east'],
   south: ['east', 'west'],
-  east: ['south', 'north'],
+  east: ['north', 'south'],
   west: ['south', 'north'],
 };
 
@@ -51,7 +52,7 @@ function createLinkedMap(rawMap: Array<string[]>): [MapTile, MapTile] {
 
   return [mapSpotMap[0][0], mapSpotMap[rawMap[0].length - 1][rawMap.length - 1]];
 }
-function generateMap(firstMapTile: MapTile, debug = false): string {
+function generateMap(firstMapTile: MapTile, paintPath: Set<MapTile>): string {
   let mapString = '';
 
   let currentTile = firstMapTile;
@@ -60,23 +61,7 @@ function generateMap(firstMapTile: MapTile, debug = false): string {
     let columnBlock = currentTile;
 
     while (columnBlock) {
-      if (debug && columnBlock.west) mapString += '<';
-
-      if (debug) {
-        if (columnBlock.north && columnBlock.south) {
-          mapString += '↕';
-        } else if (columnBlock.north) {
-          mapString += '↑';
-        } else if (columnBlock.south) {
-          mapString += '↓';
-        } else {
-          mapString += '*';
-        }
-      } else {
-        mapString += columnBlock.heatLose;
-      }
-
-      if (debug && columnBlock.east) mapString += '>';
+      mapString += paintPath.has(columnBlock) ? '*' : columnBlock.heatLose;
 
       columnBlock = columnBlock.east;
     }
@@ -90,44 +75,67 @@ function generateMap(firstMapTile: MapTile, debug = false): string {
 
 const [startPosition, goalPosition] = createLinkedMap(input);
 
-console.log(generateMap(startPosition));
+const walkCalls: Array<[MapTile, Direction, number, number, Set<MapTile>]> = [];
+let minHeatLoss = 1050;
+let minPath: Set<MapTile> = null;
+const callsCache: { [key: string]: number } = {};
+function walk(
+  enterPosition: MapTile,
+  direction: Direction,
+  maxWalkDistance: number,
+  heatLost: number,
+  currentPath: Set<MapTile>,
+) {
+  const currentHeatLost = heatLost + enterPosition.heatLose;
+  if (currentHeatLost > minHeatLoss) return;
 
-const visitedMap: { [key: string]: { [key in Direction]?: number } } = {};
-let count = 0;
-function walk(startPosition: MapTile, direction: Direction, heatLost: number) {
-  console.log(++count);
-  if (!visitedMap[startPosition.id]) visitedMap[startPosition.id] = {};
-  visitedMap[startPosition.id][direction] = heatLost;
+  const callKey = `${enterPosition.id}:${direction}:${maxWalkDistance}`;
+  if (callsCache[callKey] && callsCache[callKey] <= currentHeatLost) return;
+  callsCache[callKey] = currentHeatLost;
 
-  if (startPosition === goalPosition) {
-    count--;
+  if (currentPath.has(enterPosition)) return;
+  currentPath.add(enterPosition);
+
+  if (enterPosition === goalPosition) {
+    if (currentHeatLost < minHeatLoss) {
+      minPath = currentPath;
+      minHeatLoss = currentHeatLost;
+      console.log('Arrived', minHeatLoss, walkCalls.length);
+    }
     return;
   }
 
-  let currentTile = startPosition;
-  let currentHeatLost = heatLost;
-
-  let walkingDistance = 3;
-  while (walkingDistance--) {
-    if (!currentTile[direction]) break;
-
-    currentTile = currentTile[direction];
-    currentHeatLost += currentTile.heatLose;
-
-    if (visitedMap[currentTile.id]?.[direction] && visitedMap[currentTile.id][direction] <= currentHeatLost) continue;
-
-    for (const dir of directionSides[direction]) {
-      //if (visitedMap[currentTile.id]?.[dir] && visitedMap[currentTile.id][dir] <= currentHeatLost) continue;
-      walk(currentTile, dir, currentHeatLost);
+  if (maxWalkDistance) {
+    // Go Straight
+    if (enterPosition[direction]) {
+      walkCalls.push([enterPosition[direction], direction, maxWalkDistance - 1, currentHeatLost, new Set(currentPath)]);
     }
   }
-  count--;
+
+  const [ccw, cw] = directionSides[direction];
+  if (enterPosition[ccw]) {
+    // 90 counter clockwise
+    walkCalls.push([enterPosition[ccw], ccw, 2, currentHeatLost, new Set(currentPath)]);
+  }
+  if (enterPosition[cw]) {
+    // 90 clockwise
+    walkCalls.push([enterPosition[cw], cw, 2, currentHeatLost, new Set(currentPath)]);
+  }
 }
 
-walk(startPosition, 'east', 0);
+walkCalls.push(
+  [startPosition.south, 'south', 2, 0, new Set<MapTile>([startPosition])],
+  [startPosition.east, 'east', 2, 0, new Set<MapTile>([startPosition])],
+);
+while (walkCalls.length) {
+  const [position, direction, maxWalkDistance, heatLoss, currentPath] = walkCalls.pop();
+  walk(position, direction, maxWalkDistance, heatLoss, currentPath);
+}
 
-const part01 = Math.min(...Object.values(visitedMap[goalPosition.id]));
-process.stdout.write(`Part 02: ${part01}\n`);
+console.log(generateMap(startPosition, minPath));
+
+const part01 = minHeatLoss;
+process.stdout.write(`Part 01: ${part01}\n`);
 
 const part02 = 0;
 process.stdout.write(`Part 02: ${part02}\n`);
