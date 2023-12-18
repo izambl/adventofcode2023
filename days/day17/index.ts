@@ -126,15 +126,15 @@ walkCalls.push(
   [startPosition.south, 'south', 2, 0, new Set<MapTile>([startPosition])],
   [startPosition.east, 'east', 2, 0, new Set<MapTile>([startPosition])],
 );
-// while (walkCalls.length) {
-//   const [position, direction, maxWalkDistance, heatLoss, currentPath] = walkCalls.pop();
-//   walk(position, direction, maxWalkDistance, heatLoss, currentPath);
-// }
+while (walkCalls.length) {
+  const [position, direction, maxWalkDistance, heatLoss, currentPath] = walkCalls.pop();
+  walk(position, direction, maxWalkDistance, heatLoss, currentPath);
+}
 
-// console.log(generateMap(startPosition, minPath));
+console.log(generateMap(startPosition, minPath));
 
-// const part01 = minHeatLoss;
-// process.stdout.write(`Part 01: ${part01}\n`);
+const part01 = minHeatLoss;
+process.stdout.write(`Part 01: ${part01}\n`);
 
 const MAX_WALK_DISTANCE = 10;
 const MIN_WALK_DISTANCE = 4;
