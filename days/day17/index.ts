@@ -61,7 +61,7 @@ function generateMap(firstMapTile: MapTile, paintPath: Set<MapTile>): string {
     let columnBlock = currentTile;
 
     while (columnBlock) {
-      mapString += paintPath.has(columnBlock) ? '*' : columnBlock.heatLose;
+      mapString += paintPath.has(columnBlock) ? `\x1b[1m\x1b[33m${columnBlock.heatLose}\x1b[0m` : columnBlock.heatLose;
 
       columnBlock = columnBlock.east;
     }
@@ -76,7 +76,7 @@ function generateMap(firstMapTile: MapTile, paintPath: Set<MapTile>): string {
 const [startPosition, goalPosition] = createLinkedMap(input);
 
 const walkCalls: Array<[MapTile, Direction, number, number, Set<MapTile>]> = [];
-let minHeatLoss = 1050;
+let minHeatLoss = Infinity;
 let minPath: Set<MapTile> = null;
 const callsCache: { [key: string]: number } = {};
 function walk(
@@ -100,25 +100,25 @@ function walk(
     if (currentHeatLost < minHeatLoss) {
       minPath = currentPath;
       minHeatLoss = currentHeatLost;
-      console.log('Arrived', minHeatLoss, walkCalls.length);
+      console.log('Arrived part01', minHeatLoss, walkCalls.length);
     }
     return;
   }
 
+  // Go Straight
   if (maxWalkDistance) {
-    // Go Straight
     if (enterPosition[direction]) {
       walkCalls.push([enterPosition[direction], direction, maxWalkDistance - 1, currentHeatLost, new Set(currentPath)]);
     }
   }
 
   const [ccw, cw] = directionSides[direction];
+  // 90 counter clockwise
   if (enterPosition[ccw]) {
-    // 90 counter clockwise
     walkCalls.push([enterPosition[ccw], ccw, 2, currentHeatLost, new Set(currentPath)]);
   }
+  // 90 clockwise
   if (enterPosition[cw]) {
-    // 90 clockwise
     walkCalls.push([enterPosition[cw], cw, 2, currentHeatLost, new Set(currentPath)]);
   }
 }
@@ -127,15 +127,132 @@ walkCalls.push(
   [startPosition.south, 'south', 2, 0, new Set<MapTile>([startPosition])],
   [startPosition.east, 'east', 2, 0, new Set<MapTile>([startPosition])],
 );
-while (walkCalls.length) {
-  const [position, direction, maxWalkDistance, heatLoss, currentPath] = walkCalls.pop();
-  walk(position, direction, maxWalkDistance, heatLoss, currentPath);
+// while (walkCalls.length) {
+//   const [position, direction, maxWalkDistance, heatLoss, currentPath] = walkCalls.pop();
+//   walk(position, direction, maxWalkDistance, heatLoss, currentPath);
+// }
+
+// console.log(generateMap(startPosition, minPath));
+
+// const part01 = minHeatLoss;
+// process.stdout.write(`Part 01: ${part01}\n`);
+
+const walkCalls2: Array<[MapTile, Direction, number, number, Set<MapTile>]> = [];
+let minHeatLoss2 = Infinity;
+let minPath2: Set<MapTile> = null;
+const callsCache2: { [key: string]: number } = {};
+function walk2(
+  enterPosition: MapTile,
+  direction: Direction,
+  maxWalkDistance: number,
+  heatLost: number,
+  currentPath: Set<MapTile>,
+) {
+  const currentHeatLost = heatLost + enterPosition.heatLose;
+  if (currentHeatLost > minHeatLoss2) return;
+
+  const callKey = `${enterPosition.id}:${direction}:${maxWalkDistance}`;
+  if (callsCache2[callKey] && callsCache2[callKey] <= currentHeatLost) return;
+  callsCache2[callKey] = currentHeatLost;
+
+  if (currentPath.has(enterPosition)) return;
+  currentPath.add(enterPosition);
+
+  if (enterPosition === goalPosition) {
+    if (currentHeatLost < minHeatLoss2) {
+      minPath2 = currentPath;
+      minHeatLoss2 = currentHeatLost;
+      console.log('Arrived part02', minHeatLoss2, walkCalls2.length);
+    }
+    return;
+  }
+
+  // Go Straight
+  if (maxWalkDistance) {
+    if (enterPosition[direction]) {
+      walkCalls2.push([
+        enterPosition[direction],
+        direction,
+        maxWalkDistance - 1,
+        currentHeatLost,
+        new Set(currentPath),
+      ]);
+    }
+  }
+
+  const [ccw, cw] = directionSides[direction];
+
+  // 90 counter clockwise
+  if (enterPosition[ccw]) {
+    let currentPosition = enterPosition;
+    let heatLoss = currentHeatLost;
+    const newPath = new Set(currentPath);
+
+    let processCcw = true;
+    for (const _ of Array(3)) {
+      currentPosition = currentPosition[ccw];
+      if (!currentPosition) {
+        processCcw = false;
+        break;
+      }
+      heatLoss += currentPosition.heatLose;
+      if (newPath.has(currentPosition)) {
+        processCcw = false;
+        break;
+      }
+      newPath.add(currentPosition);
+    }
+
+    if (processCcw && currentPosition?.[ccw]) walkCalls2.push([currentPosition[ccw], ccw, 6, heatLoss, newPath]);
+  }
+  // 90 clockwise
+  if (enterPosition[cw]) {
+    let currentPosition = enterPosition;
+    let heatLoss = currentHeatLost;
+    const newPath = new Set(currentPath);
+
+    let processCw = true;
+    for (const _ of Array(3)) {
+      currentPosition = currentPosition[cw];
+      if (!currentPosition) {
+        processCw = false;
+        break;
+      }
+      heatLoss += currentPosition.heatLose;
+      if (newPath.has(currentPosition)) {
+        processCw = false;
+        break;
+      }
+      newPath.add(currentPosition);
+    }
+
+    if (processCw && currentPosition?.[cw]) walkCalls2.push([currentPosition[cw], cw, 6, currentHeatLost, newPath]);
+  }
 }
 
-console.log(generateMap(startPosition, minPath));
+startPosition.east.heatLose + startPosition.east.east.heatLose + startPosition.east.east.east.heatLose;
+walkCalls2.push(
+  [
+    startPosition.east.east.east.east,
+    'east',
+    6,
+    startPosition.east.heatLose + startPosition.east.east.heatLose + startPosition.east.east.east.heatLose,
+    new Set<MapTile>([startPosition, startPosition.east, startPosition.east.east, startPosition.east.east.east]),
+  ],
+  [
+    startPosition.south.south.south.south,
+    'south',
+    6,
+    startPosition.south.heatLose + startPosition.south.south.heatLose + startPosition.south.south.south.heatLose,
+    new Set<MapTile>([startPosition, startPosition.south, startPosition.south.south, startPosition.south.south.south]),
+  ],
+);
+while (walkCalls2.length) {
+  const [position, direction, maxWalkDistance, heatLoss, currentPath] = walkCalls2.pop();
+  walk2(position, direction, maxWalkDistance, heatLoss, currentPath);
+}
 
-const part01 = minHeatLoss;
-process.stdout.write(`Part 01: ${part01}\n`);
+console.log(generateMap(startPosition, minPath2));
 
-const part02 = 0;
+const part02 = Array.from(minPath2).reduce((total, tile) => total + tile.heatLose, 0) - startPosition.heatLose;
 process.stdout.write(`Part 02: ${part02}\n`);
