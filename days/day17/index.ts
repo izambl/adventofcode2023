@@ -1,7 +1,6 @@
 // https://adventofcode.com/2023/day/17
 // Day 17: Clumsy Crucible
 
-import { max, min } from 'lodash';
 import { readInput } from '../../common/index';
 
 const input = readInput('days/day17/input01', '\n').map((row) => row.split(''));
@@ -137,122 +136,88 @@ walkCalls.push(
 // const part01 = minHeatLoss;
 // process.stdout.write(`Part 01: ${part01}\n`);
 
+const MAX_WALK_DISTANCE = 10;
+const MIN_WALK_DISTANCE = 4;
 const walkCalls2: Array<[MapTile, Direction, number, number, Set<MapTile>]> = [];
-let minHeatLoss2 = Infinity;
+let minHeatLoss2 = 1200;
 let minPath2: Set<MapTile> = null;
-const callsCache2: { [key: string]: number } = {};
+const forkCache: { [key: string]: number } = {};
 function walk2(
   enterPosition: MapTile,
   direction: Direction,
-  maxWalkDistance: number,
+  currentWalk: number,
   heatLost: number,
   currentPath: Set<MapTile>,
 ) {
   const currentHeatLost = heatLost + enterPosition.heatLose;
   if (currentHeatLost > minHeatLoss2) return;
 
-  const callKey = `${enterPosition.id}:${direction}:${maxWalkDistance}`;
-  if (callsCache2[callKey] && callsCache2[callKey] <= currentHeatLost) return;
-  callsCache2[callKey] = currentHeatLost;
-
-  if (currentPath.has(enterPosition)) return;
   currentPath.add(enterPosition);
 
   if (enterPosition === goalPosition) {
     if (currentHeatLost < minHeatLoss2) {
       minPath2 = currentPath;
       minHeatLoss2 = currentHeatLost;
-      console.log('Arrived part02', minHeatLoss2, walkCalls2.length);
+      console.log('Arrived part02', minHeatLoss2, currentPath.size);
     }
     return;
   }
 
   // Go Straight
-  if (maxWalkDistance) {
-    if (enterPosition[direction]) {
-      walkCalls2.push([
-        enterPosition[direction],
-        direction,
-        maxWalkDistance - 1,
-        currentHeatLost,
-        new Set(currentPath),
-      ]);
+  if (currentWalk < MAX_WALK_DISTANCE) {
+    if (enterPosition[direction] && !currentPath.has(enterPosition[direction])) {
+      walkCalls2.push([enterPosition[direction], direction, currentWalk + 1, currentHeatLost, new Set(currentPath)]);
     }
   }
 
-  const [ccw, cw] = directionSides[direction];
+  // Go sides
+  if (currentWalk >= MIN_WALK_DISTANCE) {
+    const [ccw, cw] = directionSides[direction];
 
-  // 90 counter clockwise
-  if (enterPosition[ccw]) {
-    let currentPosition = enterPosition;
-    let heatLoss = currentHeatLost;
-    const newPath = new Set(currentPath);
+    // 90 counter clockwise
+    if (canWalkMinDistance(enterPosition, ccw, currentPath)) {
+      const forkKey = `${enterPosition[ccw].id}:${direction}`;
 
-    let processCcw = true;
-    for (const _ of Array(3)) {
-      currentPosition = currentPosition[ccw];
-      if (!currentPosition) {
-        processCcw = false;
-        break;
+      if (!forkCache[forkKey] || forkCache[forkKey] > currentHeatLost) {
+        forkCache[forkKey] = currentHeatLost;
+        walkCalls2.push([enterPosition[ccw], ccw, 1, currentHeatLost, new Set(currentPath)]);
       }
-      heatLoss += currentPosition.heatLose;
-      if (newPath.has(currentPosition)) {
-        processCcw = false;
-        break;
-      }
-      newPath.add(currentPosition);
     }
+    // 90 clockwise
+    if (canWalkMinDistance(enterPosition, cw, currentPath)) {
+      const forkKey = `${enterPosition[cw].id}:${direction}`;
 
-    if (processCcw && currentPosition?.[ccw]) walkCalls2.push([currentPosition[ccw], ccw, 6, heatLoss, newPath]);
-  }
-  // 90 clockwise
-  if (enterPosition[cw]) {
-    let currentPosition = enterPosition;
-    let heatLoss = currentHeatLost;
-    const newPath = new Set(currentPath);
-
-    let processCw = true;
-    for (const _ of Array(3)) {
-      currentPosition = currentPosition[cw];
-      if (!currentPosition) {
-        processCw = false;
-        break;
+      if (!forkCache[forkKey] || forkCache[forkKey] > currentHeatLost) {
+        forkCache[forkKey] = currentHeatLost;
+        walkCalls2.push([enterPosition[cw], cw, 1, currentHeatLost, new Set(currentPath)]);
       }
-      heatLoss += currentPosition.heatLose;
-      if (newPath.has(currentPosition)) {
-        processCw = false;
-        break;
-      }
-      newPath.add(currentPosition);
     }
-
-    if (processCw && currentPosition?.[cw]) walkCalls2.push([currentPosition[cw], cw, 6, currentHeatLost, newPath]);
   }
 }
 
-startPosition.east.heatLose + startPosition.east.east.heatLose + startPosition.east.east.east.heatLose;
+function canWalkMinDistance(startPosition: MapTile, direction: Direction, currentPath: Set<MapTile>): boolean {
+  let currentPosition = startPosition;
+
+  for (const _ of Array(MIN_WALK_DISTANCE)) {
+    currentPosition = currentPosition?.[direction];
+
+    if (!currentPosition) return false;
+    if (currentPath.has(currentPosition)) return false;
+  }
+
+  return true;
+}
+
 walkCalls2.push(
-  [
-    startPosition.east.east.east.east,
-    'east',
-    6,
-    startPosition.east.heatLose + startPosition.east.east.heatLose + startPosition.east.east.east.heatLose,
-    new Set<MapTile>([startPosition, startPosition.east, startPosition.east.east, startPosition.east.east.east]),
-  ],
-  [
-    startPosition.south.south.south.south,
-    'south',
-    6,
-    startPosition.south.heatLose + startPosition.south.south.heatLose + startPosition.south.south.south.heatLose,
-    new Set<MapTile>([startPosition, startPosition.south, startPosition.south.south, startPosition.south.south.south]),
-  ],
+  [startPosition.east, 'east', 1, 0, new Set<MapTile>([startPosition])],
+  [startPosition.south, 'south', 1, 0, new Set<MapTile>([startPosition])],
 );
 while (walkCalls2.length) {
   const [position, direction, maxWalkDistance, heatLoss, currentPath] = walkCalls2.pop();
   walk2(position, direction, maxWalkDistance, heatLoss, currentPath);
 }
 
-console.log(generateMap(startPosition, minPath2));
+console.log(generateMap(startPosition, minPath2), minHeatLoss2); // 1183
 
 const part02 = Array.from(minPath2).reduce((total, tile) => total + tile.heatLose, 0) - startPosition.heatLose;
 process.stdout.write(`Part 02: ${part02}\n`);
