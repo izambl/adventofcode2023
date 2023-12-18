@@ -158,7 +158,7 @@ function walk2(
     if (currentHeatLost < minHeatLoss2) {
       minPath2 = currentPath;
       minHeatLoss2 = currentHeatLost;
-      console.log('Arrived part02', minHeatLoss2, currentPath.size);
+      console.log('Arrived part02', minHeatLoss2);
     }
     return;
   }
@@ -176,7 +176,7 @@ function walk2(
 
     // 90 counter clockwise
     if (canWalkMinDistance(enterPosition, ccw, currentPath)) {
-      const forkKey = `${enterPosition[ccw].id}:${direction}`;
+      const forkKey = `${enterPosition[ccw].id}:${ccw}`;
 
       if (!forkCache[forkKey] || forkCache[forkKey] > currentHeatLost) {
         forkCache[forkKey] = currentHeatLost;
@@ -185,7 +185,7 @@ function walk2(
     }
     // 90 clockwise
     if (canWalkMinDistance(enterPosition, cw, currentPath)) {
-      const forkKey = `${enterPosition[cw].id}:${direction}`;
+      const forkKey = `${enterPosition[cw].id}:${cw}`;
 
       if (!forkCache[forkKey] || forkCache[forkKey] > currentHeatLost) {
         forkCache[forkKey] = currentHeatLost;
@@ -209,15 +209,15 @@ function canWalkMinDistance(startPosition: MapTile, direction: Direction, curren
 }
 
 walkCalls2.push(
-  [startPosition.east, 'east', 1, 0, new Set<MapTile>([startPosition])],
   [startPosition.south, 'south', 1, 0, new Set<MapTile>([startPosition])],
+  [startPosition.east, 'east', 1, 0, new Set<MapTile>([startPosition])],
 );
 while (walkCalls2.length) {
   const [position, direction, maxWalkDistance, heatLoss, currentPath] = walkCalls2.pop();
   walk2(position, direction, maxWalkDistance, heatLoss, currentPath);
 }
 
-console.log(generateMap(startPosition, minPath2), minHeatLoss2); // 1183
+console.log(generateMap(startPosition, minPath2), minHeatLoss2); // 1183   ===>> 1171
 
 const part02 = Array.from(minPath2).reduce((total, tile) => total + tile.heatLose, 0) - startPosition.heatLose;
 process.stdout.write(`Part 02: ${part02}\n`);
