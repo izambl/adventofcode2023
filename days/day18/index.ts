@@ -3,7 +3,7 @@
 
 import { readInput } from '../../common/index';
 
-const digInstructions: Array<[string, number, string]> = readInput('days/day18/inputDemo2', '\n').map(
+const digInstructions: Array<[string, number, string]> = readInput('days/day18/inputDemo', '\n').map(
   (line) => line.split(' ') as [string, number, string],
 );
 
@@ -144,15 +144,25 @@ type Point = {
 
 function printPolygon(firstPoint: Point) {
   let currentPoint = firstPoint;
-  const matrix: Array<string[]> = [];
+  const matrix: { [y: string]: { [x: string]: string } } = {};
+  let minY = Infinity;
+  let maxY = -Infinity;
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let printString = '';
 
   do {
     const from = currentPoint;
     const to = currentPoint.next;
 
     for (let y = Math.min(from.y, to.y); y <= Math.max(from.y, to.y); y++) {
+      minY = Math.min(y, minY);
+      maxY = Math.max(y, maxY);
+
       for (let x = Math.min(from.x, to.x); x <= Math.max(from.x, to.x); x++) {
-        if (!matrix[y]) matrix[y] = [];
+        minX = Math.min(x, minX);
+        maxX = Math.max(x, maxX);
+        if (!matrix[y]) matrix[y] = {};
         matrix[y][x] = '*';
       }
     }
@@ -160,16 +170,14 @@ function printPolygon(firstPoint: Point) {
     currentPoint = currentPoint.next;
   } while (currentPoint !== firstPoint);
 
-  for (let i = 0; i < matrix.length; i++) {
-    if (!matrix[i]) matrix[i] = [];
+  for (let y = minY; y <= maxY; y++) {
+    for (let x = minX; x <= maxX; x++) {
+      printString += matrix[y][x] ? matrix[y][x] : '.';
+    }
+    printString += '\n';
   }
 
-  for (const row of matrix) {
-    for (let i = 0; i < row.length; i++) {
-      if (!row[i]) row[i] = '.';
-    }
-    console.log(row.join(''));
-  }
+  console.log(printString);
 }
 function cleanPolygon(firstPoint: Point): Point {
   let referencePoint = firstPoint;
@@ -210,7 +218,7 @@ let firstPoint: Point = { x: 0, y: 0, id: 0 };
 let currentPoint = firstPoint;
 const yCutsSet = new Set<number>();
 let count = 1;
-for (const instruction of digInstructions) {
+for (const instruction of updatedDigInstructions) {
   const [direction, length] = instruction;
   let { x, y } = currentPoint;
 
@@ -235,7 +243,7 @@ for (const instruction of digInstructions) {
 
 const yCuts = Array.from(yCutsSet).sort((a, b) => a - b);
 
-printPolygon(firstPoint);
+// printPolygon(firstPoint);
 
 console.log(yCuts);
 
@@ -269,7 +277,7 @@ for (let i = 0; i < yCuts.length - 1; i++) {
     to.y = nextCut;
 
     firstPoint = cleanPolygon(firstPoint);
-    printPolygon(firstPoint);
+    //printPolygon(firstPoint);
   }
 }
 
