@@ -1,9 +1,10 @@
 // https://adventofcode.com/2023/day/20
 // Day 20: Pulse Propagation
 
+import { send } from 'process';
 import { readInput } from '../../common/index';
 
-const input = readInput('days/day20/inputDemo2', '\n');
+const input = readInput('days/day20/input01', '\n');
 
 interface Module {
   destinations: Set<Module>;
@@ -15,6 +16,8 @@ interface Module {
   addInput: (input: Module) => void;
   printStatus: () => string;
 }
+
+const sendQueue: Array<() => void> = [];
 
 class Broadcast implements Module {
   destinations: Set<Module> = new Set();
@@ -32,9 +35,11 @@ class Broadcast implements Module {
 
     this.pulsesReceived[String(pulse) as keyof typeof this.pulsesReceived] += 1;
 
-    for (const destination of this.destinations) {
-      destination.receive(pulse, this.name);
-    }
+    sendQueue.push(() => {
+      for (const destination of this.destinations) {
+        destination.receive(pulse, this.name);
+      }
+    });
   }
 
   addInput(module: Module) {
@@ -68,9 +73,11 @@ class FlipFlop implements Module {
     }
     this.status = !this.status;
 
-    for (const destination of this.destinations) {
-      destination.receive(this.status, this.name);
-    }
+    sendQueue.push(() => {
+      for (const destination of this.destinations) {
+        destination.receive(this.status, this.name);
+      }
+    });
   }
 
   addInput(module: Module) {
@@ -103,9 +110,11 @@ class Conjunction implements Module {
 
     const pulseToSend = !Object.values(this.inputsMemories).every((pulse) => pulse === true);
 
-    for (const destination of this.destinations) {
-      destination.receive(pulseToSend, this.name);
-    }
+    sendQueue.push(() => {
+      for (const destination of this.destinations) {
+        destination.receive(pulseToSend, this.name);
+      }
+    });
   }
 
   addInput(module: Module) {
@@ -186,8 +195,12 @@ for (const line of input) {
   }
 }
 
-for (const _ of Array(3)) {
+for (const _ of Array(1000)) {
   modulesMap.roadcaster.receive(false, 'Thelu');
+  while (sendQueue.length) {
+    sendQueue.shift()();
+  }
+
   console.log('\n-----\n');
   for (const module of Object.values(modulesMap)) {
     console.log(module.printStatus());
