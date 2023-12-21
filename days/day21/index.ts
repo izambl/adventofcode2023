@@ -3,7 +3,7 @@
 
 import { readInput } from '../../common/index';
 
-const rawGarden = readInput('days/day21/input01', '\n').map((line) => line.split(''));
+const rawGarden = readInput('days/day21/inputDemo', '\n').map((line) => line.split(''));
 
 type Direction = 'north' | 'west' | 'south' | 'east';
 type MapTile = {
@@ -63,7 +63,7 @@ function generateMap(firstMapTile: MapTile, startPosition: MapTile, paintPath: S
         columnBlock === startPosition
           ? '\x1b[1m\x1b[33mS\x1b[0m'
           : paintPath.has(columnBlock)
-            ? '\x1b[1m\x1b[33mO\x1b[0m'
+            ? '\x1b[1m\x1b[32mO\x1b[0m'
             : columnBlock.type;
 
       columnBlock = columnBlock.east;
@@ -105,7 +105,7 @@ function walk(
   return visitedTiles;
 }
 
-const visitedTiles = walk(startPosition, 64, 0, new Map<MapTile, true>(), {});
+const visitedTiles = walk(startPosition, 85, 0, new Map<MapTile, true>(), {});
 
 console.log(generateMap(corner, startPosition, new Set(visitedTiles.keys())));
 
