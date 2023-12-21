@@ -1,7 +1,6 @@
 // https://adventofcode.com/2023/day/20
 // Day 20: Pulse Propagation
 
-import { send } from 'process';
 import { readInput } from '../../common/index';
 
 const input = readInput('days/day20/input01', '\n');
@@ -18,28 +17,18 @@ interface Module {
 }
 
 const sendQueue: Array<() => void> = [];
+let outputReceivedLowPulse = false;
+const debug = false;
 
-class Broadcast implements Module {
+abstract class AbstractModule implements Module {
   destinations: Set<Module> = new Set();
-  inputs: Set<Module> = new Set();
   name: string;
+  inputs: Set<Module> = new Set();
   pulsesReceived: { false: number; true: number } = { false: 0, true: 0 };
-  type = 'Broadcast';
+  type = '';
 
   constructor(name: string) {
     this.name = name;
-  }
-
-  receive(pulse: boolean, from: string) {
-    console.log(`${from} -${pulse ? 'high' : 'low'}-> ${this.name}`);
-
-    this.pulsesReceived[String(pulse) as keyof typeof this.pulsesReceived] += 1;
-
-    sendQueue.push(() => {
-      for (const destination of this.destinations) {
-        destination.receive(pulse, this.name);
-      }
-    });
   }
 
   addInput(module: Module) {
@@ -49,22 +38,32 @@ class Broadcast implements Module {
   printStatus() {
     return `[${this.type}:${this.name}]`;
   }
+
+  abstract receive(pulse: boolean, from: string): void;
 }
 
-class FlipFlop implements Module {
-  destinations: Set<Module> = new Set();
-  inputs: Set<Module> = new Set();
-  name: string;
-  pulsesReceived: { false: number; true: number } = { false: 0, true: 0 };
+class Broadcast extends AbstractModule implements Module {
+  type = 'Broadcast';
+
+  receive(pulse: boolean, from: string) {
+    debug && console.log(`${from} -${pulse ? 'high' : 'low'}-> ${this.name}`);
+
+    this.pulsesReceived[String(pulse) as keyof typeof this.pulsesReceived] += 1;
+
+    sendQueue.push(() => {
+      for (const destination of this.destinations) {
+        destination.receive(pulse, this.name);
+      }
+    });
+  }
+}
+
+class FlipFlop extends AbstractModule implements Module {
   status = false;
   type = 'FlipFlop';
 
-  constructor(name: string) {
-    this.name = name;
-  }
-
   receive(pulse: boolean, from: string) {
-    console.log(`${from} -${pulse ? 'high' : 'low'}-> ${this.name}`);
+    debug && console.log(`${from} -${pulse ? 'high' : 'low'}-> ${this.name}`);
 
     this.pulsesReceived[String(pulse) as keyof typeof this.pulsesReceived] += 1;
 
@@ -80,29 +79,17 @@ class FlipFlop implements Module {
     });
   }
 
-  addInput(module: Module) {
-    this.inputs.add(module);
-  }
-
   printStatus() {
     return `[${this.type}:${this.name}] status: ${this.status ? 'on' : 'off'}`;
   }
 }
 
-class Conjunction implements Module {
-  destinations: Set<Module> = new Set();
-  inputs: Set<Module> = new Set();
-  name: string;
-  pulsesReceived: { false: number; true: number } = { false: 0, true: 0 };
+class Conjunction extends AbstractModule implements Module {
   inputsMemories: { [key: string]: boolean } = {};
   type = 'Conjunction';
 
-  constructor(name: string) {
-    this.name = name;
-  }
-
   receive(pulse: boolean, from: string) {
-    console.log(`${from} -${pulse ? 'high' : 'low'}-> ${this.name}`);
+    debug && console.log(`${from} -${pulse ? 'high' : 'low'}-> ${this.name}`);
 
     this.pulsesReceived[String(pulse) as keyof typeof this.pulsesReceived] += 1;
 
@@ -128,30 +115,17 @@ class Conjunction implements Module {
   }
 }
 
-class Output implements Module {
-  destinations: Set<Module> = new Set();
-  inputs: Set<Module> = new Set();
-  name: string;
-  pulsesReceived: { false: number; true: number } = { false: 0, true: 0 };
-  status = false;
+class Output extends AbstractModule implements Module {
   type = 'Output';
 
-  constructor(name: string) {
-    this.name = name;
-  }
-
   receive(pulse: boolean, from: string) {
-    console.log(`${from} -${pulse ? 'high' : 'low'}-> ${this.name}`);
+    debug && console.log(`${from} -${pulse ? 'high' : 'low'}-> ${this.name}`);
+
+    if (pulse === false) {
+      outputReceivedLowPulse = true;
+    }
 
     this.pulsesReceived[String(pulse) as keyof typeof this.pulsesReceived] += 1;
-  }
-
-  addInput(module: Module) {
-    this.inputs.add(module);
-  }
-
-  printStatus() {
-    return `[${this.type}:${this.name}]`;
   }
 }
 
@@ -195,25 +169,36 @@ for (const line of input) {
   }
 }
 
-for (const _ of Array(1000)) {
+let clickCount = 0;
+let part01 = 0;
+while (clickCount < 1000) {
+  clickCount += 1;
   modulesMap.roadcaster.receive(false, 'Thelu');
   while (sendQueue.length) {
     sendQueue.shift()();
   }
 
-  console.log('\n-----\n');
-  for (const module of Object.values(modulesMap)) {
-    console.log(module.printStatus());
+  if (clickCount % 1000000 === 0) {
+    console.log('exit  click', clickCount);
   }
-  console.log('\n-----\n');
+
+  if (clickCount === 1000) {
+    let highPulses = 0;
+    let lowPulses = 0;
+    for (const module of Object.values(modulesMap)) {
+      highPulses += module.pulsesReceived.true;
+      lowPulses += module.pulsesReceived.false;
+    }
+    part01 = highPulses * lowPulses;
+  }
 }
 
-let highPulses = 0;
-let lowPulses = 0;
-for (const module of Object.values(modulesMap)) {
-  highPulses += module.pulsesReceived.true;
-  lowPulses += module.pulsesReceived.false;
-}
-
-const part01 = highPulses * lowPulses;
 process.stdout.write(`Part 01: ${part01}\n`);
+
+const part02 = clickCount;
+process.stdout.write(`Part 02: ${part02}\n`);
+// LCM solution
+// Get all inputs for the input of the output
+// Find the cycles of those inputs being High
+// Get the LCM of those
+// Profit
