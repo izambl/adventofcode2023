@@ -190,10 +190,6 @@ while (minCyclesToTurnOnMachine === 0) {
     sendQueue.shift()();
   }
 
-  if (clickCount % 1000000 === 0) {
-    console.log('exit  click', clickCount);
-  }
-
   if (clickCount === 1000) {
     let highPulses = 0;
     let lowPulses = 0;
