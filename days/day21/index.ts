@@ -1,7 +1,6 @@
 // https://adventofcode.com/2023/day/21
 // Day 21: Step Counter
 
-import { max } from 'lodash';
 import { readInput } from '../../common/index';
 
 const rawGarden = readInput('days/day21/input01', '\n').map((line) => line.split(''));
@@ -79,18 +78,17 @@ function generateMap(firstMapTile: MapTile, startPosition: MapTile, paintPath: S
 
 const [startPosition, corner] = createLinkedMap(rawGarden);
 
-console.log(generateMap(corner, startPosition, new Set()));
+function walk(
+  startPosition: MapTile,
+  maxSteps: number,
+  stepNumber: number,
+  visitedTiles: Map<MapTile, true>,
+  tilesCache: { [index: string]: true },
+): Map<MapTile, true> {
+  if (stepNumber > maxSteps) return;
 
-const visitedTiles = new Map<MapTile, true>();
-const tilesCache: { [index: string]: true } = {};
-function walk(startPosition: MapTile, maxSteps: number, stepNumber: number) {
-  if (stepNumber > maxSteps) {
-    return;
-  }
   const walkKey = `${startPosition.id}:${stepNumber}`;
-  if (tilesCache[walkKey]) {
-    return;
-  }
+  if (tilesCache[walkKey]) return;
 
   tilesCache[walkKey] = true;
 
@@ -98,23 +96,16 @@ function walk(startPosition: MapTile, maxSteps: number, stepNumber: number) {
     visitedTiles.set(startPosition, true);
   }
 
-  if (startPosition.north?.type === '.') {
-    walk(startPosition.north, maxSteps, stepNumber + 1);
+  for (const direction of ['north', 'west', 'south', 'east'] as Direction[]) {
+    if (startPosition[direction]?.type === '.') {
+      walk(startPosition[direction], maxSteps, stepNumber + 1, visitedTiles, tilesCache);
+    }
   }
-  if (startPosition.south?.type === '.') {
-    walk(startPosition.south, maxSteps, stepNumber + 1);
-  }
-  if (startPosition.west?.type === '.') {
-    walk(startPosition.west, maxSteps, stepNumber + 1);
-  }
-  if (startPosition.east?.type === '.') {
-    walk(startPosition.east, maxSteps, stepNumber + 1);
-  }
+
+  return visitedTiles;
 }
 
-walk(startPosition, 64, 0);
-
-console.log(visitedTiles.size);
+const visitedTiles = walk(startPosition, 64, 0, new Map<MapTile, true>(), {});
 
 console.log(generateMap(corner, startPosition, new Set(visitedTiles.keys())));
 
