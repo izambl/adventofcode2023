@@ -1,7 +1,7 @@
 // https://adventofcode.com/2023/day/20
 // Day 20: Pulse Propagation
 
-import { readInput } from '../../common/index';
+import { findLCM, readInput } from '../../common/index';
 
 const input = readInput('days/day20/input01', '\n');
 
@@ -9,6 +9,7 @@ interface Module {
   destinations: Set<Module>;
   inputs: Set<Module>;
   name: string;
+  trackOutput: boolean;
   type: string;
   pulsesReceived: { false: number; true: number };
   receive: (pulse: boolean, from: string) => void;
@@ -17,7 +18,7 @@ interface Module {
 }
 
 const sendQueue: Array<() => void> = [];
-let outputReceivedLowPulse = false;
+let minCyclesToTurnOnMachine = 0;
 const debug = false;
 
 abstract class AbstractModule implements Module {
@@ -26,6 +27,7 @@ abstract class AbstractModule implements Module {
   inputs: Set<Module> = new Set();
   pulsesReceived: { false: number; true: number } = { false: 0, true: 0 };
   type = '';
+  trackOutput = false;
 
   constructor(name: string) {
     this.name = name;
@@ -86,6 +88,7 @@ class FlipFlop extends AbstractModule implements Module {
 
 class Conjunction extends AbstractModule implements Module {
   inputsMemories: { [key: string]: boolean } = {};
+  inputsMemoriesCycles: { [key: string]: number } = {};
   type = 'Conjunction';
 
   receive(pulse: boolean, from: string) {
@@ -97,6 +100,17 @@ class Conjunction extends AbstractModule implements Module {
 
     const pulseToSend = !Object.values(this.inputsMemories).every((pulse) => pulse === true);
 
+    if (this.trackOutput) {
+      if (pulse === true) {
+        console.log(from, clickCount - this.inputsMemoriesCycles[from]);
+        this.inputsMemoriesCycles[from] = clickCount;
+
+        if (Object.values(this.inputsMemoriesCycles).every((cycle) => cycle > 0)) {
+          minCyclesToTurnOnMachine = findLCM(Object.values(this.inputsMemoriesCycles));
+        }
+      }
+    }
+
     sendQueue.push(() => {
       for (const destination of this.destinations) {
         destination.receive(pulseToSend, this.name);
@@ -107,6 +121,7 @@ class Conjunction extends AbstractModule implements Module {
   addInput(module: Module) {
     this.inputs.add(module);
     this.inputsMemories[module.name] = false;
+    this.inputsMemoriesCycles[module.name] = 0;
   }
 
   printStatus() {
@@ -120,10 +135,6 @@ class Output extends AbstractModule implements Module {
 
   receive(pulse: boolean, from: string) {
     debug && console.log(`${from} -${pulse ? 'high' : 'low'}-> ${this.name}`);
-
-    if (pulse === false) {
-      outputReceivedLowPulse = true;
-    }
 
     this.pulsesReceived[String(pulse) as keyof typeof this.pulsesReceived] += 1;
   }
@@ -162,6 +173,7 @@ for (const line of input) {
     if (!destinationModule) {
       destinationModule = new Output(destinationName);
       modulesMap[destinationName] = destinationModule;
+      module.trackOutput = true;
     }
 
     module.destinations.add(modulesMap[destinationName]);
@@ -171,7 +183,7 @@ for (const line of input) {
 
 let clickCount = 0;
 let part01 = 0;
-while (clickCount < 1000) {
+while (minCyclesToTurnOnMachine === 0) {
   clickCount += 1;
   modulesMap.roadcaster.receive(false, 'Thelu');
   while (sendQueue.length) {
@@ -195,10 +207,5 @@ while (clickCount < 1000) {
 
 process.stdout.write(`Part 01: ${part01}\n`);
 
-const part02 = clickCount;
+const part02 = minCyclesToTurnOnMachine;
 process.stdout.write(`Part 02: ${part02}\n`);
-// LCM solution
-// Get all inputs for the input of the output
-// Find the cycles of those inputs being High
-// Get the LCM of those
-// Profit
