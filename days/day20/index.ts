@@ -3,25 +3,24 @@
 
 import { readInput } from '../../common/index';
 
-const input = readInput('days/day20/inputDemo1', '\n');
+const input = readInput('days/day20/inputDemo2', '\n');
 
 interface Module {
   destinations: Set<Module>;
   inputs: Set<Module>;
   name: string;
   type: string;
-  pulsesSent: { false: number; true: number };
+  pulsesReceived: { false: number; true: number };
   receive: (pulse: boolean, from: string) => void;
-  process: () => void;
   addInput: (input: Module) => void;
+  printStatus: () => string;
 }
 
 class Broadcast implements Module {
   destinations: Set<Module> = new Set();
   inputs: Set<Module> = new Set();
   name: string;
-  pulsesSent: { false: number; true: number } = { false: 0, true: 0 };
-  receivedPulse = false;
+  pulsesReceived: { false: number; true: number } = { false: 0, true: 0 };
   type = 'Broadcast';
 
   constructor(name: string) {
@@ -29,21 +28,21 @@ class Broadcast implements Module {
   }
 
   receive(pulse: boolean, from: string) {
-    this.receivedPulse = pulse;
-    console.log(`[${this.type}:${this.name}] receives ${pulse} from ${from}`);
-    this.process();
-  }
+    console.log(`${from} -${pulse ? 'high' : 'low'}-> ${this.name}`);
 
-  process() {
+    this.pulsesReceived[String(pulse) as keyof typeof this.pulsesReceived] += 1;
+
     for (const destination of this.destinations) {
-      console.log(`[${this.type}:${this.name}] sends ${this.receivedPulse} to ${destination.name}`);
-      this.pulsesSent[String(this.receivedPulse) as keyof typeof this.pulsesSent] += 1;
-      destination.receive(this.receivedPulse, this.name);
+      destination.receive(pulse, this.name);
     }
   }
 
   addInput(module: Module) {
     this.inputs.add(module);
+  }
+
+  printStatus() {
+    return `[${this.type}:${this.name}]`;
   }
 }
 
@@ -51,8 +50,7 @@ class FlipFlop implements Module {
   destinations: Set<Module> = new Set();
   inputs: Set<Module> = new Set();
   name: string;
-  pulsesSent: { false: number; true: number } = { false: 0, true: 0 };
-  receivedPulses: boolean[] = [];
+  pulsesReceived: { false: number; true: number } = { false: 0, true: 0 };
   status = false;
   type = 'FlipFlop';
 
@@ -61,26 +59,26 @@ class FlipFlop implements Module {
   }
 
   receive(pulse: boolean, from: string) {
-    this.receivedPulses.push(pulse);
-    console.log(`[${this.type}:${this.name}] receives ${pulse} from ${from}`);
-    this.process();
-  }
+    console.log(`${from} -${pulse ? 'high' : 'low'}-> ${this.name}`);
 
-  process() {
-    for (const pulse of this.receivedPulses) {
-      if (pulse === true) return;
+    this.pulsesReceived[String(pulse) as keyof typeof this.pulsesReceived] += 1;
 
-      this.status = !this.status;
+    if (pulse === true) {
+      return;
+    }
+    this.status = !this.status;
 
-      for (const destination of this.destinations) {
-        this.pulsesSent[String(this.status) as keyof typeof this.pulsesSent] += 1;
-        destination.receive(this.status, this.name);
-      }
+    for (const destination of this.destinations) {
+      destination.receive(this.status, this.name);
     }
   }
 
   addInput(module: Module) {
     this.inputs.add(module);
+  }
+
+  printStatus() {
+    return `[${this.type}:${this.name}] status: ${this.status ? 'on' : 'off'}`;
   }
 }
 
@@ -88,9 +86,8 @@ class Conjunction implements Module {
   destinations: Set<Module> = new Set();
   inputs: Set<Module> = new Set();
   name: string;
-  pulsesSent: { false: number; true: number } = { false: 0, true: 0 };
-  receivedPulses: boolean[] = [];
-  receivedPulsesValues: { [key: string]: boolean } = {};
+  pulsesReceived: { false: number; true: number } = { false: 0, true: 0 };
+  inputsMemories: { [key: string]: boolean } = {};
   type = 'Conjunction';
 
   constructor(name: string) {
@@ -98,24 +95,54 @@ class Conjunction implements Module {
   }
 
   receive(pulse: boolean, from: string) {
-    this.receivedPulses.push(pulse);
-    this.receivedPulsesValues[from] = false;
-    console.log(`[${this.type}:${this.name}] receives ${pulse} from ${from}`);
-    this.process();
-  }
+    console.log(`${from} -${pulse ? 'high' : 'low'}-> ${this.name}`);
 
-  process() {
-    const pulse = !Object.values(this.receivedPulsesValues).every((pulse) => pulse === true);
+    this.pulsesReceived[String(pulse) as keyof typeof this.pulsesReceived] += 1;
+
+    this.inputsMemories[from] = pulse;
+
+    const pulseToSend = !Object.values(this.inputsMemories).every((pulse) => pulse === true);
 
     for (const destination of this.destinations) {
-      this.pulsesSent[String(pulse) as keyof typeof this.pulsesSent] += 1;
-      destination.receive(pulse, this.name);
+      destination.receive(pulseToSend, this.name);
     }
   }
 
   addInput(module: Module) {
     this.inputs.add(module);
-    this.receivedPulsesValues[module.name] = false;
+    this.inputsMemories[module.name] = false;
+  }
+
+  printStatus() {
+    console.log(this.inputsMemories);
+    return `[${this.type}:${this.name}]`;
+  }
+}
+
+class Output implements Module {
+  destinations: Set<Module> = new Set();
+  inputs: Set<Module> = new Set();
+  name: string;
+  pulsesReceived: { false: number; true: number } = { false: 0, true: 0 };
+  status = false;
+  type = 'Output';
+
+  constructor(name: string) {
+    this.name = name;
+  }
+
+  receive(pulse: boolean, from: string) {
+    console.log(`${from} -${pulse ? 'high' : 'low'}-> ${this.name}`);
+
+    this.pulsesReceived[String(pulse) as keyof typeof this.pulsesReceived] += 1;
+  }
+
+  addInput(module: Module) {
+    this.inputs.add(module);
+  }
+
+  printStatus() {
+    return `[${this.type}:${this.name}]`;
   }
 }
 
@@ -123,7 +150,7 @@ const modulesMap: { [index: string]: Module } = {};
 
 // Create modules
 for (const line of input) {
-  const [moduleString] = line.split(' -> ');
+  const [moduleString] = line.split('->').map((sides) => sides.trim());
 
   const moduleType = moduleString[0];
   const moduleName = moduleString.slice(1);
@@ -139,24 +166,41 @@ for (const line of input) {
 
 // Add inputs and destinations
 for (const line of input) {
-  const [moduleString, destinationModulesString] = line.split(' -> ');
+  const [moduleString, destinationModulesString] = line.split(' -> ').map((sides) => sides.trim());
 
   const moduleName = moduleString.slice(1);
-  const destinationModules = destinationModulesString.split(', ');
+  const destinationModules = destinationModulesString?.split(', ') ?? [];
 
   const module = modulesMap[moduleName];
 
   for (const destinationName of destinationModules) {
+    let destinationModule = modulesMap[destinationName];
+
+    if (!destinationModule) {
+      destinationModule = new Output(destinationName);
+      modulesMap[destinationName] = destinationModule;
+    }
+
     module.destinations.add(modulesMap[destinationName]);
     modulesMap[destinationName].addInput(module);
   }
 }
 
-modulesMap.roadcaster.receive(false, 'Thelu');
-
-for (const module of Object.values(modulesMap)) {
-  console.log(module.pulsesSent);
+for (const _ of Array(3)) {
+  modulesMap.roadcaster.receive(false, 'Thelu');
+  console.log('\n-----\n');
+  for (const module of Object.values(modulesMap)) {
+    console.log(module.printStatus());
+  }
+  console.log('\n-----\n');
 }
 
-const part01 = 0;
+let highPulses = 0;
+let lowPulses = 0;
+for (const module of Object.values(modulesMap)) {
+  highPulses += module.pulsesReceived.true;
+  lowPulses += module.pulsesReceived.false;
+}
+
+const part01 = highPulses * lowPulses;
 process.stdout.write(`Part 01: ${part01}\n`);
