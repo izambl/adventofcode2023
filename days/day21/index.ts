@@ -3,14 +3,14 @@
 
 import { readInput } from '../../common/index';
 
-const rawGarden = readInput('days/day21/inputDemo', '\n').map((line) => line.split(''));
+const rawGarden = readInput('days/day21/inputDemo', '\n');
 
 type Direction = 'north' | 'west' | 'south' | 'east';
 type MapTile = {
   [key in Direction]: MapTile | null;
 } & { id: string; type: string };
 
-export function createLinkedMap(rawMap: Array<string[]>): [MapTile, MapTile] {
+export function createLinkedMap(rawMap: Array<string[]>, idPrefix = ''): [MapTile, MapTile] {
   const mapSpotMap: { [xKey: string]: { [yKey: string]: MapTile } } = {};
   let startPosition: MapTile;
   let id = 0;
@@ -23,7 +23,7 @@ export function createLinkedMap(rawMap: Array<string[]>): [MapTile, MapTile] {
         south: null,
         east: null,
         type: tile,
-        id: String(++id),
+        id: `${idPrefix}:${++id}`,
       };
 
       if (tile === 'S') {
@@ -75,8 +75,30 @@ function generateMap(firstMapTile: MapTile, startPosition: MapTile, paintPath: S
 
   return mapString;
 }
+function generateExpandedUniverse(times: number): [MapTile, MapTile] {
+  const repeat = times * 2 - 1;
 
-const [startPosition, corner] = createLinkedMap(rawGarden);
+  let expandedRawGardenString = rawGarden.map((line) => line.repeat(repeat)).join('\n');
+
+  expandedRawGardenString = `${expandedRawGardenString}\n`.repeat(repeat).slice(0, -1);
+
+  const delta = times * 2 * (times - 1);
+  for (const _ of Array(delta)) {
+    const startS = [...expandedRawGardenString];
+    startS[expandedRawGardenString.indexOf('S')] = '.';
+    expandedRawGardenString = startS.join('');
+
+    const endS = [...expandedRawGardenString];
+    endS[expandedRawGardenString.lastIndexOf('S')] = '.';
+    expandedRawGardenString = endS.join('');
+  }
+
+  const expandedRawGarden = expandedRawGardenString.split('\n').map((line) => line.split(''));
+
+  return createLinkedMap(expandedRawGarden);
+}
+
+const [startPosition, corner] = generateExpandedUniverse(12);
 
 function walk(
   startPosition: MapTile,
@@ -105,7 +127,7 @@ function walk(
   return visitedTiles;
 }
 
-const visitedTiles = walk(startPosition, 85, 0, new Map<MapTile, true>(), {});
+const visitedTiles = walk(startPosition, 50, 0, new Map<MapTile, true>(), {});
 
 console.log(generateMap(corner, startPosition, new Set(visitedTiles.keys())));
 
