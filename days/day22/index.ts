@@ -63,6 +63,7 @@ class Space {
   space: {
     [x: string]: { [y: string]: { [z: string]: SandSlab } };
   } = {};
+  sandSlabs = new Set<SandSlab>();
 
   placeSlab(sandSlab: SandSlab) {
     for (const x of sandSlab.xs) {
@@ -72,6 +73,7 @@ class Space {
           if (!this.space[x][y]) this.space[x][y] = {};
 
           this.space[x][y][z] = sandSlab;
+          this.sandSlabs.add(sandSlab);
         }
       }
     }
@@ -112,9 +114,20 @@ class Space {
       for (const y of sandSlab.ys) {
         for (const z of sandSlab.zs) {
           this.space[x][y][z] = null;
+          this.sandSlabs.delete(sandSlab);
         }
       }
     }
+  }
+
+  clone(): Space {
+    const newSpace = new Space();
+
+    for (const sandSlab of this.sandSlabs) {
+      newSpace.placeSlab(sandSlab);
+    }
+
+    return newSpace;
   }
 }
 
@@ -136,25 +149,17 @@ sandSlabs.sort((a, b) => a.zs[0] - b.zs[0]);
 function applyGravity(sandSlabs: SandSlab[]): boolean {
   let movement = false;
 
-  console.log('applying gravity round');
-
   for (const sandSlab of sandSlabs) {
-    console.log(`  processing sandSlab: ${sandSlab.ids}`);
     if (sandSlab.minZ <= 1) {
-      console.log('  skip because it is already in floor');
       continue;
     }
 
     const down = space.whoIsDown(sandSlab);
     if (down.length === 0) {
-      console.log('  moving down...');
-
       movement = true;
       space.removeSlab(sandSlab);
       sandSlab.fall();
       space.placeSlab(sandSlab);
-    } else {
-      console.log(`  can not go down, ${down.map((x) => x.ids).join(', ')} is there`);
     }
   }
 
@@ -168,22 +173,23 @@ do {
 } while (gravityApplied);
 
 let canDisintegrate = 0;
-console.log('\nDisintegration\n');
+const supportingSandSlabs = new Set<SandSlab>();
 for (const sandSlab of sandSlabs) {
   const up = space.whoIsUp(sandSlab);
 
-  console.log(`${sandSlab.ids} is supporting ${up.map((x) => x.ids).join(', ')}`);
-
   const hasExtraSupport = up.every((upSandSlab) => {
     const down = space.whoIsDown(upSandSlab);
-    console.log(`  ${upSandSlab.ids} is supported by ${down.map((x) => x.ids).join(', ')}`);
     return down.length > 1;
   });
+
   if (hasExtraSupport) {
-    console.log(`${sandSlab.ids} can be disintegrated`);
     canDisintegrate += 1;
+  } else {
+    supportingSandSlabs.add(sandSlab);
   }
 }
+
+console.log(Array.from(supportingSandSlabs).map((x) => x.id));
 
 const part01 = canDisintegrate;
 process.stdout.write(`Part 01: ${part01}\n`);
